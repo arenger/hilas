@@ -1,14 +1,20 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
-   <appender name="STDOUT" class="ch.qos.logback.core.ConsoleAppender">
-      <encoder>
-         <pattern>%d{HH:mm:ss.SSS} [%thread] %-5level %logger{5} - %msg%n</pattern>
-      </encoder>
-   </appender>
-   <logger name="com.lordofthejars.foo" level="INFO" additivity="false">
-      <appender-ref ref="STDOUT" />
-   </logger>
-   <root level="DEBUG">         
-      <appender-ref ref="STDOUT" />
-   </root> 
+  <appender name="MAIN" class="ch.qos.logback.core.rolling.RollingFileAppender">
+    <file>hilas.log</file>
+    <rollingPolicy class="ch.qos.logback.core.rolling.FixedWindowRollingPolicy">
+      <fileNamePattern>hilas.%i.log</fileNamePattern>
+      <minIndex>1</minIndex>
+      <maxIndex>5</maxIndex>
+    </rollingPolicy>
+    <triggeringPolicy class="ch.qos.logback.core.rolling.SizeBasedTriggeringPolicy">
+      <maxFileSize>10MB</maxFileSize>
+    </triggeringPolicy>
+    <encoder>
+      <pattern>%d [%thread] %-5level %logger{15} - %msg%n</pattern>
+    </encoder>
+  </appender>
+  <root level="DEBUG">
+    <appender-ref ref="MAIN"/>
+  </root>
 </configuration>
