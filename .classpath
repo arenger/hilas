@@ -4,8 +4,8 @@
 	<classpathentry excluding="**/*.java" kind="src" path="src/main/resources"/>
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.launching.macosx.MacOSXType/Java 7 JDK"/>
 	<classpathentry kind="var" path="M2_REPO/org/slf4j/slf4j-api/1.7.5/slf4j-api-1.7.5.jar"/>
-	<classpathentry exported="true" kind="var" path="M2_REPO/ch/qos/logback/logback-core/${logback.version}/logback-core-${logback.version}.jar"/>
-	<classpathentry exported="true" kind="var" path="M2_REPO/ch/qos/logback/logback-classic/${logback.version}/logback-classic-${logback.version}.jar"/>
+	<classpathentry kind="var" path="M2_REPO/ch/qos/logback/logback-core/1.0.12/logback-core-1.0.12.jar"/>
+	<classpathentry kind="var" path="M2_REPO/ch/qos/logback/logback-classic/1.0.12/logback-classic-1.0.12.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/jolbox/bonecp/0.7.1.RELEASE/bonecp-0.7.1.RELEASE.jar"/>
 	<classpathentry kind="output" path="target/classes"/>
 </classpath>
