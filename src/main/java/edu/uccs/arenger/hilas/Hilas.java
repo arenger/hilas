@@ -93,11 +93,10 @@ public final class Hilas {
       config.setUsername(props.getProperty("db.username"));
       config.setPassword(props.getProperty("db.password"));
       try {
-         Class.forName(DB_DRIVER);
          connectionPool = new BoneCP(config);
          LOGGER.info("getMinConnectionsPerPartition: {}",
             config.getMinConnectionsPerPartition());
-      } catch (ClassNotFoundException|SQLException e) {
+      } catch (SQLException e) {
          LOGGER.error("DB connection problem", e);
       }
    }
@@ -108,13 +107,13 @@ public final class Hilas {
          public void run() { shutdown(); }
       });
       getProps();
-      initDbPool();
       switch (mode) {
       case RUN:
          break;
       case LOAD:
          break;
       case CHECK:
+         //initDbPool(); TODO call with mix/max conns/partition?
          break;
       }
    }
