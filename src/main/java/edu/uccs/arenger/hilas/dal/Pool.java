@@ -4,22 +4,16 @@ import java.sql.Connection;
 import java.sql.SQLException;
 import java.util.Properties;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.jolbox.bonecp.BoneCP;
 import com.jolbox.bonecp.BoneCPConfig;
 
 public final class Pool {
-   private static final Logger LOGGER = LoggerFactory.getLogger(Pool.class);
-
    private static BoneCP pool;
 
    private Pool() {}
 
-   public static boolean init(Properties props) {
-      if (pool != null) { return true; }
-      boolean success = false;
+   public static void init(Properties props) throws DalException {
+      if (pool != null) { return; }
       BoneCPConfig config = new BoneCPConfig();
       config.setJdbcUrl(String.format("jdbc:mysql://%s:%s/%s",
          props.getProperty("db.host"), props.getProperty("db.port"),
@@ -30,11 +24,10 @@ public final class Pool {
       config.setMaxConnectionsPerPartition(10);
       try {
          pool = new BoneCP(config);
-         success = true;
+         Domain.initCache();
       } catch (SQLException e) {
-         LOGGER.error("DB connection problem", e);
+         throw new DalException(e);
       }
-      return success;
    }
 
    public static Connection getConnection() throws SQLException {

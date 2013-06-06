@@ -10,4 +10,5 @@
   <classpathentry kind="var" path="M2_REPO/mysql/mysql-connector-java/5.1.25/mysql-connector-java-5.1.25.jar"/>
   <classpathentry kind="var" path="M2_REPO/com/jolbox/bonecp/0.7.1.RELEASE/bonecp-0.7.1.RELEASE.jar"/>
   <classpathentry kind="var" path="M2_REPO/com/google/guava/guava/r08/guava-r08.jar"/>
+  <classpathentry kind="var" path="M2_REPO/commons-io/commons-io/2.1/commons-io-2.1.jar"/>
 </classpath>
