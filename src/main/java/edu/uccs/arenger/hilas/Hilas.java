@@ -2,18 +2,15 @@ package edu.uccs.arenger.hilas;
 
 import java.io.File;
 import java.net.URL;
-import java.sql.SQLException;
 import java.util.Properties;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.jolbox.bonecp.BoneCP;
-import com.jolbox.bonecp.BoneCPConfig;
+import edu.uccs.arenger.hilas.dal.Pool;
 
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
-   private static final String DB_DRIVER = "com.mysql.jdbc.Driver";
    private static final String PROPS = "hilas.properties";
    private static final String USAGE =
       "usage: hilas run\n" +
@@ -23,8 +20,6 @@ public final class Hilas {
    enum Mode {
       RUN, LOAD, CHECK
    };
-
-   public BoneCP connectionPool;
 
    private Mode mode;
    private File loadFile;
@@ -80,25 +75,13 @@ public final class Hilas {
 
    private void shutdown() {
       LOGGER.info("Shutting down");
-      if (connectionPool != null) {
-         connectionPool.shutdown();
-      }
+      Pool.shutdown();
    }
 
-   private void initDbPool() {
-      BoneCPConfig config = new BoneCPConfig();
-      config.setJdbcUrl(String.format("jdbc:mysql://%s:%s/%s",
-         props.getProperty("db.host"), props.getProperty("db.port"),
-         props.getProperty("db.name")));
-      config.setUsername(props.getProperty("db.username"));
-      config.setPassword(props.getProperty("db.password"));
-      try {
-         connectionPool = new BoneCP(config);
-         LOGGER.info("getMinConnectionsPerPartition: {}",
-            config.getMinConnectionsPerPartition());
-      } catch (SQLException e) {
-         LOGGER.error("DB connection problem", e);
-      }
+   private void corre() {
+   }
+
+   private void load() {
    }
 
    private void run() {
@@ -108,13 +91,22 @@ public final class Hilas {
       });
       getProps();
       switch (mode) {
-      case RUN:
-         break;
-      case LOAD:
-         break;
-      case CHECK:
-         //initDbPool(); TODO call with mix/max conns/partition?
-         break;
+         case RUN:
+            if (!Pool.init(props)) {
+               System.err.println("DB init error.");
+               System.exit(1);
+            }
+            corre();
+            break;
+         case LOAD:
+            if (!Pool.init(props)) {
+               System.err.println("DB init error.");
+               System.exit(1);
+            }
+            load();
+            break;
+         case CHECK:
+            break;
       }
    }
 
