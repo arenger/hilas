@@ -51,11 +51,8 @@ public final class Domain {
       }
 
       Domain ret = null;
-      Connection conn = null; 
-      PreparedStatement ps = null; 
-      try {
-         conn = Pool.getConnection();
-         ps = conn.prepareStatement(INS);
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(INS)) {
          ps.setString(1, id);
          ps.setString(2, domain);
          ps.executeUpdate();
@@ -64,9 +61,6 @@ public final class Domain {
          LOGGER.info("inserted new domain: {} - {}", id, domain);
       } catch (SQLException e) {
          throw new DalException(e);
-      } finally {
-         Util.close(ps);
-         Util.close(conn);
       }
       return ret;
    }
@@ -74,22 +68,14 @@ public final class Domain {
    public static void initCache() throws DalException {
       LOGGER.info("Loading cache");
       cache = new ConcurrentHashMap<String,String>();
-      Connection conn = null; 
-      PreparedStatement ps = null; 
-      ResultSet rs = null;
-      try {
-         conn = Pool.getConnection();
-         ps = conn.prepareStatement(SEL);
-         rs = ps.executeQuery();
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL)) {
+         ResultSet rs = ps.executeQuery();
          while (rs.next()) {
             cache.put(rs.getString(2),rs.getString(1));
          }
       } catch (SQLException e) {
          throw new DalException(e);
-      } finally {
-         Util.close(rs);
-         Util.close(ps);
-         Util.close(conn);
       }
    }
 

@@ -12,7 +12,6 @@ import org.slf4j.LoggerFactory;
 
 public class Site {
    private static final Logger LOGGER = LoggerFactory.getLogger(Site.class);
-   private static final int MYSQL_DUP_CODE = 1062;
 
    private String  id;
    private String  domainId;
@@ -42,6 +41,13 @@ public class Site {
       if (domainId == null) {
          domainId = Domain.getFromUrl(url).getId();
       }
+
+      // Note: The close method of BoneCp's ConnectionHandle doesn't
+      // actually CLOSE the connection -- it just releases it back to
+      // the pool, as I understand.  Further, ConnectionHandle implements
+      // java.sql.Connection, so I assume that when it's used with JSE7,
+      // the release-to-pool will happen as part of the try-with-resources
+      // construct, which is nice...
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(INS)) {
          ps.setString(1, id);
@@ -61,7 +67,7 @@ public class Site {
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
-         if ((e.getErrorCode() == MYSQL_DUP_CODE) &&
+         if ((e.getErrorCode() == Util.MYSQL_DUP_CODE) &&
              !e.getMessage().contains("PRIMARY")) {
             LOGGER.warn(e.getMessage());
          } else {
