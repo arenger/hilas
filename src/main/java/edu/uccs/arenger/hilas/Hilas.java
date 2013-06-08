@@ -94,7 +94,7 @@ public final class Hilas {
          String line;
          while ((line = in.readLine()) != null) {
             Site site = new Site(line, source);
-            site.save();
+            site.insert();
          }
       } catch (DalException|IOException e) {
          LOGGER.error("problem", e);

@@ -19,24 +19,6 @@ public final class Util {
       }
    }
 
-   //many of the hilas tables have a single primary key of type varchar
-   public static boolean simplePkExists(
-      Connection conn, String sql, String id) throws SQLException {
-      boolean ret = true;
-      PreparedStatement ps = null;
-      ResultSet rs = null;
-      try {
-         ps = conn.prepareStatement(sql);
-         ps.setString(1,id);
-         rs = ps.executeQuery();
-         ret = rs.next();
-      } finally {
-         close(rs);
-         close(ps);
-      }
-      return ret;
-   }
-
    public static void close(Connection c) {
       if (c != null) {
          try {

@@ -10,4 +10,8 @@ public class DalException extends Exception {
    public DalException(Throwable cause) {
       super(cause);
    }
+
+   public DalException(String msg, Throwable cause) {
+      super(msg, cause);
+   }
 }

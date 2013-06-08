@@ -11,7 +11,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 public class Site {
-   private static final Logger LOGGER = LoggerFactory.getLogger(Domain.class);
+   private static final Logger LOGGER = LoggerFactory.getLogger(Site.class);
+   private static final int MYSQL_DUP_CODE = 1062;
 
    private String  id;
    private String  domainId;
@@ -34,36 +35,15 @@ public class Site {
       this.source = source;
    }
 
-   public void save() throws DalException {
+   public void insert() throws DalException {
       Util.notNull(id, "id");
       Util.notNull(url, "url");
       Util.notNull(source, "source");
       if (domainId == null) {
          domainId = Domain.getFromUrl(url).getId();
       }
-
-      // BoneCp.getConnection returns a JSE 6 Connection, which does
-      // not implement java.lang.AutoCloseable, so we can't use the
-      // helpful try-with-resources statement here... (BoneCp 0.7.1)
-      Connection conn = null; 
-      try {
-         conn = Pool.getConnection();
-         if (Util.simplePkExists(conn, SEL, id)) {
-            update(conn);
-         } else {
-            insert(conn);
-         }
-      } catch (SQLException e) {
-         throw new DalException(e);
-      } finally {
-         Util.close(conn);
-      }
-   }
-
-   private void insert(Connection conn) throws DalException {
-      PreparedStatement ps = null; 
-      try {
-         ps = conn.prepareStatement(INS);
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(INS)) {
          ps.setString(1, id);
          ps.setString(2, domainId);
          ps.setString(3, url);
@@ -79,15 +59,18 @@ public class Site {
             ps.setNull(6, Types.INTEGER);
          }
          ps.executeUpdate();
-         LOGGER.info("inserted new site: {}", id);
+         LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
-         throw new DalException(e);
-      } finally {
-         Util.close(ps);
+         if ((e.getErrorCode() == MYSQL_DUP_CODE) &&
+             !e.getMessage().contains("PRIMARY")) {
+            LOGGER.warn(e.getMessage());
+         } else {
+            throw new DalException("Error code " + e.getErrorCode(), e);
+         }
       }
    }
 
-   private void update(Connection conn) throws DalException {
+   public void update() throws DalException {
       //TODO
    }
 }

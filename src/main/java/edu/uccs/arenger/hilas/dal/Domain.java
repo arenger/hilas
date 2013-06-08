@@ -21,7 +21,7 @@ public final class Domain {
    
    private static ConcurrentMap<String,String> cache; //domain->id
    private static Pattern domainFromUrl =
-      Pattern.compile("https?:\\/\\/(.+?)\\/");
+      Pattern.compile("^https?:\\/\\/(.+?)\\/");
 
    private static final String INS = "insert into domain values (?, ?)";
    private static final String SEL = "select id, domain from domain";
@@ -34,7 +34,7 @@ public final class Domain {
    public static Domain getFromUrl(String url) throws DalException {
       Matcher m = domainFromUrl.matcher(url);
       String domain = null;
-      if (m.matches()) {
+      if (m.find()) {
          domain = m.group(1);
       } else {
          throw new DalException("could not parse url");
@@ -61,7 +61,7 @@ public final class Domain {
          ps.executeUpdate();
          cache.put(domain,id);
          ret = new Domain(id, domain);
-         LOGGER.info("inserted new domain: {}", id);
+         LOGGER.info("inserted new domain: {} - {}", id, domain);
       } catch (SQLException e) {
          throw new DalException(e);
       } finally {
