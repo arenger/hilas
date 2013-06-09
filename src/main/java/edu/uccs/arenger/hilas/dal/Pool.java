@@ -24,13 +24,12 @@ public final class Pool {
       config.setMaxConnectionsPerPartition(10);
       try {
          pool = new BoneCP(config);
-         Domain.initCache();
       } catch (SQLException e) {
          throw new DalException(e);
       }
    }
 
-   public static Connection getConnection() throws SQLException {
+   protected static Connection getConnection() throws SQLException {
       return pool.getConnection();
    }
 

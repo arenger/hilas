@@ -19,12 +19,14 @@ public final class Domain {
    private String id;
    private String domain;
    
-   private static ConcurrentMap<String,String> cache; //domain->id
+   private static ConcurrentMap<String,String> cache
+      = new ConcurrentHashMap<String,String>(); //domain->id
    private static Pattern domainFromUrl =
       Pattern.compile("^https?:\\/\\/(.+?)\\/");
 
    private static final String INS = "insert into domain values (?, ?)";
-   private static final String SEL = "select id, domain from domain";
+   private static final String SEL_DOM =
+      "select id from domain where domain = ?";
 
    private Domain(String id, String domain) {
       this.id = id;
@@ -45,11 +47,17 @@ public final class Domain {
    public static Domain get(String domain) throws DalException {
       String id = cache.get(domain);
       if (id != null) {
+         LOGGER.debug("cache hit: {}", domain);
          return new Domain(id, domain);
       } else {
-         id = UUID.randomUUID().toString();
+         id = getFromDb(domain);
+         if (id != null) {
+            cache.put(domain,id);
+            return new Domain(id, domain);
+         }
       }
 
+      id = UUID.randomUUID().toString();
       Domain ret = null;
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(INS)) {
@@ -65,18 +73,19 @@ public final class Domain {
       return ret;
    }
 
-   public static void initCache() throws DalException {
-      LOGGER.info("Loading cache");
-      cache = new ConcurrentHashMap<String,String>();
+   private static String getFromDb(String domain) throws DalException {
+      String id = null;
       try (Connection conn = Pool.getConnection();
-           PreparedStatement ps = conn.prepareStatement(SEL)) {
+           PreparedStatement ps = conn.prepareStatement(SEL_DOM)) {
+         ps.setString(1, domain);
          ResultSet rs = ps.executeQuery();
-         while (rs.next()) {
-            cache.put(rs.getString(2),rs.getString(1));
+         if (rs.next()) {
+            id = rs.getString(1);
          }
-      } catch (SQLException e) {
-         throw new DalException(e);
-      }
+         LOGGER.debug("db lookup for {} - {}", domain,
+            id == null ? "not found" : "found" );
+      } catch (SQLException e) { throw new DalException(e); }
+      return id;
    }
 
    public String getId() {

@@ -107,6 +107,7 @@ public final class Hilas {
          public void run() { shutdown(); }
       });
       getProps();
+      System.out.println("Started.  See hilas.log");
       switch (mode) {
          case RUN:
             corre();
