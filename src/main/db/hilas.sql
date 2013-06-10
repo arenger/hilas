@@ -87,6 +87,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`Site` (
   `source` VARCHAR(32) NOT NULL COMMENT 'eg alexa, blacklist, crawler, subsite, etc' ,
   `visitTime` TIMESTAMP NULL COMMENT 'if/when this site was visited' ,
   `size` INT NULL COMMENT 'size in bytes of the initial html loaded.  no js-generated html will be included' ,
+  `htmlValidated` TINYINT(1) NOT NULL DEFAULT 0 ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `url_UNIQUE` (`url` ASC) ,
   INDEX `fk_Site_Domain1_idx` (`domainId` ASC) ,
@@ -235,24 +236,64 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
+-- Table `hilas`.`Css`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `hilas`.`Css` ;
+
+CREATE  TABLE IF NOT EXISTS `hilas`.`Css` (
+  `id` VARCHAR(36) NOT NULL ,
+  `url` VARCHAR(512) NOT NULL COMMENT 'the url at which this css was first found by hilas' ,
+  `md5` VARCHAR(32) NOT NULL ,
+  `size` INT NOT NULL COMMENT 'in bytes' ,
+  `validated` TINYINT(1) NOT NULL DEFAULT 0 ,
+  PRIMARY KEY (`id`) ,
+  UNIQUE INDEX `md5_UNIQUE` (`md5` ASC) )
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
 -- Table `hilas`.`CssValid`
 -- -----------------------------------------------------
 DROP TABLE IF EXISTS `hilas`.`CssValid` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`CssValid` (
-  `siteId` VARCHAR(36) NOT NULL ,
+  `cssId` VARCHAR(36) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
-  PRIMARY KEY (`siteId`, `msgId`) ,
-  INDEX `fk_CssValid_Site1_idx` (`siteId` ASC) ,
+  PRIMARY KEY (`cssId`, `msgId`) ,
   INDEX `fk_CssValid_CssValidMsg1_idx` (`msgId` ASC) ,
-  CONSTRAINT `fk_CssValid_Site1`
+  INDEX `fk_CssValid_Css1_idx` (`cssId` ASC) ,
+  CONSTRAINT `fk_CssValid_CssValidMsg1`
+    FOREIGN KEY (`msgId` )
+    REFERENCES `hilas`.`CssValidMsg` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_CssValid_Css1`
+    FOREIGN KEY (`cssId` )
+    REFERENCES `hilas`.`Css` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `hilas`.`SiteCss`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `hilas`.`SiteCss` ;
+
+CREATE  TABLE IF NOT EXISTS `hilas`.`SiteCss` (
+  `siteId` VARCHAR(36) NOT NULL ,
+  `cssId` VARCHAR(36) NOT NULL ,
+  PRIMARY KEY (`siteId`, `cssId`) ,
+  INDEX `fk_SiteCss_Site1_idx` (`siteId` ASC) ,
+  INDEX `fk_SiteCss_Css1_idx` (`cssId` ASC) ,
+  CONSTRAINT `fk_SiteCss_Site1`
     FOREIGN KEY (`siteId` )
     REFERENCES `hilas`.`Site` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
-  CONSTRAINT `fk_CssValid_CssValidMsg1`
-    FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`CssValidMsg` (`id` )
+  CONSTRAINT `fk_SiteCss_Css1`
+    FOREIGN KEY (`cssId` )
+    REFERENCES `hilas`.`Css` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

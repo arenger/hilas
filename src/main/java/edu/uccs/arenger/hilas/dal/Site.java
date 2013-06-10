@@ -1,9 +1,10 @@
 package edu.uccs.arenger.hilas.dal;
 
 import java.sql.Connection;
-import java.sql.Date;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.UUID;
 
@@ -19,19 +20,35 @@ public class Site {
    private String  source;
    private Long    visitTime;
    private Integer size;
+   private boolean htmlValidated;
 
-   private static final String SEL = 
-      "select id from site where id = ?";
+   private static final String SEL_UNVISITED = 
+      "select * from site where visitTime is null limit 1";
    private static final String INS =
-      "insert into site values (?,?,?,?,?,?)";
-   //only the visitTime and size are expected to change after insertion:
+      "insert into site values (?,?,?,?,?,?,?)";
+
+   // only the visitTime, size, and htmlValidated are
+   // expected to change after insertion:
    private static final String UPD = 
-      "update site set visitTime = ?, size = ? where id = ?";
+      "update site set visitTime = ?, size = ?, htmlValidated = ? " +
+      "where id = ?";
 
    public Site(String url, String source) {
       id = UUID.randomUUID().toString();
       this.url = url;
       this.source = source;
+      htmlValidated = false;
+   }
+
+   private Site(ResultSet rs) throws SQLException {
+      id = rs.getString("id");
+      domainId = rs.getString("domainId");
+      url = rs.getString("url");
+      source = rs.getString("source");
+      Timestamp ts = rs.getTimestamp("visitTime");
+      if (ts != null) { visitTime = ts.getTime(); }
+      size = rs.getInt("size"); if (rs.wasNull()) { size = null; }
+      htmlValidated = rs.getBoolean("htmlValidated");
    }
 
    public void insert() throws DalException {
@@ -55,15 +72,16 @@ public class Site {
          ps.setString(3, url);
          ps.setString(4, source);
          if (visitTime != null) {
-            ps.setDate(5, new Date(visitTime));
+            ps.setTimestamp(5, new Timestamp(visitTime));
          } else {
             ps.setNull(5, Types.DATE);
          }
-         if (visitTime != null) {
+         if (size != null) {
             ps.setInt(6, size);
          } else {
             ps.setNull(6, Types.INTEGER);
          }
+         ps.setBoolean(7, htmlValidated);
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
@@ -77,6 +95,53 @@ public class Site {
    }
 
    public void update() throws DalException {
-      //TODO
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(UPD)) {
+         if (visitTime != null) {
+            ps.setTimestamp(1, new Timestamp(visitTime));
+         } else {
+            ps.setNull(1, Types.DATE);
+         }
+         if (size != null) {
+            ps.setInt(2, size);
+         } else {
+            ps.setNull(2, Types.INTEGER);
+         }
+         ps.setBoolean(3, htmlValidated);
+         ps.setString(4, id);
+         ps.executeUpdate();
+      } catch (SQLException e) {
+         throw new DalException(e);
+      }
+   }
+
+   public static Site nextUnvisited() throws DalException {
+      Site site = null;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_UNVISITED)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            site = new Site(rs);
+         }
+      } catch (SQLException e) {
+         throw new DalException(e);
+      }
+      return site;
+   }
+
+   public String getUrl() {
+      return url;
+   }
+
+   public void setVisitTime(Long visitTime) {
+      this.visitTime = visitTime;
+   }
+
+   public void setSize(Integer size) {
+      this.size = size;
+   }
+
+   public void setHtmlValidated(boolean htmlValidated) {
+      this.htmlValidated = htmlValidated;
    }
 }

@@ -6,6 +6,9 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.URL;
 import java.util.Properties;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -31,6 +34,7 @@ public final class Hilas {
    private File loadFile;
    private String urlToCheck;
    private Properties props;
+   private ScheduledExecutorService runPool;
 
    private Hilas(String[] args) {
       if (args.length == 0) {
@@ -82,9 +86,22 @@ public final class Hilas {
    private void shutdown() {
       LOGGER.info("Shutting down");
       Pool.shutdown();
+      if (runPool != null) {
+         runPool.shutdownNow();
+      }
    }
 
    private void corre() {
+      try {
+         Pool.init(props);
+         SiteVisitor.trustAllSslCerts();
+         runPool = Executors.newScheduledThreadPool(
+            Integer.parseInt(props.getProperty("threadPoolSize")));
+         runPool.scheduleWithFixedDelay(
+            new SiteVisitor(), 0, SiteVisitor.SEC_BTWN, TimeUnit.SECONDS);
+      } catch (DalException e) {
+         LOGGER.error("problem", e);
+      }
    }
 
    private void load() {
@@ -116,6 +133,7 @@ public final class Hilas {
             load();
             break;
          case CHECK:
+            LOGGER.info("this mode is not yet implemented."); //TODO
             break;
       }
    }
