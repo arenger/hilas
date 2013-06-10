@@ -84,14 +84,7 @@ public class Site {
          ps.setBoolean(7, htmlValidated);
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
-      } catch (SQLException e) {
-         if ((e.getErrorCode() == Util.MYSQL_DUP_CODE) &&
-             !e.getMessage().contains("PRIMARY")) {
-            LOGGER.warn(e.getMessage());
-         } else {
-            throw new DalException("Error code " + e.getErrorCode(), e);
-         }
-      }
+      } catch (SQLException e) { Util.warnIfDup(e); }
    }
 
    public void update() throws DalException {
@@ -127,6 +120,10 @@ public class Site {
          throw new DalException(e);
       }
       return site;
+   }
+
+   public String getId() {
+      return id;
    }
 
    public String getUrl() {

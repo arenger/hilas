@@ -94,7 +94,7 @@ public final class Hilas {
    private void corre() {
       try {
          Pool.init(props);
-         SiteVisitor.trustAllSslCerts();
+         Util.trustAllSslCerts();
          runPool = Executors.newScheduledThreadPool(
             Integer.parseInt(props.getProperty("threadPoolSize")));
          runPool.scheduleWithFixedDelay(
