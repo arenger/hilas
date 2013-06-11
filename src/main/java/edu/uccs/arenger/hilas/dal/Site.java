@@ -90,7 +90,7 @@ public class Site {
          }
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
-      } catch (SQLException e) { Util.warnIfDup(e); }
+      } catch (SQLException e) { throw DalException.of(e); }
    }
 
    public void update() throws DalException {
@@ -122,9 +122,7 @@ public class Site {
          if (rs.next()) {
             site = new Site(rs);
          }
-      } catch (SQLException e) {
-         throw new DalException(e);
-      }
+      } catch (SQLException e) { throw new DalException(e); }
       return site;
    }
 

@@ -78,7 +78,7 @@ public class JavaScript {
          ps.setBoolean(6, jsHinted);
          ps.executeUpdate();
          LOGGER.info("inserted new js: {} - {}", id, url);
-      } catch (SQLException e) { Util.warnIfDup(e); }
+      } catch (SQLException e) { throw DalException.of(e); }
    }
 
    public void linkToSite(String siteId) throws DalException {
@@ -88,13 +88,7 @@ public class JavaScript {
          ps.setString(2, id);
          ps.executeUpdate();
          LOGGER.debug("new SiteJs entry: {} - {}", siteId, id);
-      } catch (SQLException e) {
-         if (e.getErrorCode() == Util.MYSQL_DUP_CODE) {
-            LOGGER.debug("already linked: {} - {}", siteId, id);
-         } else {
-            throw new DalException("Error code " + e.getErrorCode(), e);
-         }
-      }
+      } catch (SQLException e) { throw DalException.of(e); }
    }
 
    public void setJsHinted(boolean jsHinted) {

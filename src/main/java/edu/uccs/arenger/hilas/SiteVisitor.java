@@ -10,6 +10,7 @@ import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
 import edu.uccs.arenger.hilas.dal.Site;
+import edu.uccs.arenger.hilas.dal.UkViolation;
 
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
@@ -51,6 +52,8 @@ public class SiteVisitor implements Runnable {
          js.linkToSite(siteId);
       } catch (IOException e) {
          LOGGER.error("problem visiting js", e);
+      } catch (UkViolation e) {
+         LOGGER.warn("unique key violation: {}", e.getMessage());
       } catch (DalException e) {
          LOGGER.error("problem storing js info", e);
       }
@@ -99,6 +102,8 @@ public class SiteVisitor implements Runnable {
          css.linkToSite(siteId);
       } catch (IOException e) {
          LOGGER.error("problem visiting css", e);
+      } catch (UkViolation e) {
+         LOGGER.warn("unique key violation: {}", e.getMessage());
       } catch (DalException e) {
          LOGGER.error("problem storing css info", e);
       }
@@ -154,6 +159,9 @@ public class SiteVisitor implements Runnable {
          try {
             site.insert();
             visit(site, depth + 1);
+         } catch (UkViolation e) {
+            LOGGER.debug("uk violation: {}", e.getMessage());
+            LOGGER.info("already visited: {}", url);
          } catch (DalException e) {
             LOGGER.error("error inserting new site", e);
          }

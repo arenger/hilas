@@ -18,6 +18,7 @@ import org.slf4j.LoggerFactory;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
+import edu.uccs.arenger.hilas.dal.UkViolation;
 
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
@@ -120,6 +121,8 @@ public final class Hilas {
                } else {
                   LOGGER.error("unsupported protocol: " + url);
                }
+            } catch (UkViolation e) {
+               LOGGER.warn("already exists: " + url);
             } catch (MalformedURLException e) {
                LOGGER.error("malformed url: " + url);
             }

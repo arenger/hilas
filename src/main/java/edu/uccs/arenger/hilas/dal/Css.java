@@ -79,7 +79,7 @@ public class Css {
          ps.setBoolean(5, validated);
          ps.executeUpdate();
          LOGGER.info("inserted new css: {} - {}", id, url);
-      } catch (SQLException e) { Util.warnIfDup(e); }
+      } catch (SQLException e) { throw DalException.of(e); }
    }
 
    public void linkToSite(String siteId) throws DalException {
@@ -89,13 +89,7 @@ public class Css {
          ps.setString(2, id);
          ps.executeUpdate();
          LOGGER.debug("new SiteCss entry: {} - {}", siteId, id);
-      } catch (SQLException e) {
-         if (e.getErrorCode() == Util.MYSQL_DUP_CODE) {
-            LOGGER.debug("already linked: {} - {}", siteId, id);
-         } else {
-            throw new DalException("Error code " + e.getErrorCode(), e);
-         }
-      }
+      } catch (SQLException e) { throw DalException.of(e); }
    }
 
    public void setValidated(boolean validated) {
