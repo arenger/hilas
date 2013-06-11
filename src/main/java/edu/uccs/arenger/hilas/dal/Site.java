@@ -18,26 +18,26 @@ public class Site {
    private String  domainId;
    private String  url;
    private String  source;
+   private State   state;
    private Long    visitTime;
    private Integer size;
-   private boolean htmlValidated;
+
+   public enum State {
+      NEW, VISITING, VISITED, VALIDATING, VALID, ERROR
+   }
 
    private static final String SEL_UNVISITED = 
-      "select * from site where visitTime is null limit 1";
+      "select * from site where state = 'NEW' limit 1";
    private static final String INS =
       "insert into site values (?,?,?,?,?,?,?)";
-
-   // only the visitTime, size, and htmlValidated are
-   // expected to change after insertion:
    private static final String UPD = 
-      "update site set visitTime = ?, size = ?, htmlValidated = ? " +
-      "where id = ?";
+      "update site set state = ?, visitTime = ?, size = ? where id = ?";
 
    public Site(String url, String source) {
       id = UUID.randomUUID().toString();
       this.url = url;
       this.source = source;
-      htmlValidated = false;
+      state = State.NEW;
    }
 
    private Site(ResultSet rs) throws SQLException {
@@ -45,10 +45,10 @@ public class Site {
       domainId = rs.getString("domainId");
       url = rs.getString("url");
       source = rs.getString("source");
+      state = State.valueOf(rs.getString("state"));
       Timestamp ts = rs.getTimestamp("visitTime");
       if (ts != null) { visitTime = ts.getTime(); }
       size = rs.getInt("size"); if (rs.wasNull()) { size = null; }
-      htmlValidated = rs.getBoolean("htmlValidated");
    }
 
    public void insert() throws DalException {
@@ -71,17 +71,17 @@ public class Site {
          ps.setString(2, domainId);
          ps.setString(3, url);
          ps.setString(4, source);
+         ps.setString(5, state.toString());
          if (visitTime != null) {
-            ps.setTimestamp(5, new Timestamp(visitTime));
+            ps.setTimestamp(6, new Timestamp(visitTime));
          } else {
-            ps.setNull(5, Types.DATE);
+            ps.setNull(6, Types.DATE);
          }
          if (size != null) {
-            ps.setInt(6, size);
+            ps.setInt(7, size);
          } else {
-            ps.setNull(6, Types.INTEGER);
+            ps.setNull(7, Types.INTEGER);
          }
-         ps.setBoolean(7, htmlValidated);
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) { Util.warnIfDup(e); }
@@ -90,17 +90,17 @@ public class Site {
    public void update() throws DalException {
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(UPD)) {
+         ps.setString(1, state.toString());
          if (visitTime != null) {
-            ps.setTimestamp(1, new Timestamp(visitTime));
+            ps.setTimestamp(2, new Timestamp(visitTime));
          } else {
-            ps.setNull(1, Types.DATE);
+            ps.setNull(2, Types.DATE);
          }
          if (size != null) {
-            ps.setInt(2, size);
+            ps.setInt(3, size);
          } else {
-            ps.setNull(2, Types.INTEGER);
+            ps.setNull(3, Types.INTEGER);
          }
-         ps.setBoolean(3, htmlValidated);
          ps.setString(4, id);
          ps.executeUpdate();
       } catch (SQLException e) {
@@ -130,6 +130,10 @@ public class Site {
       return url;
    }
 
+   public void setState(State state) {
+      this.state = state;
+   }
+
    public void setVisitTime(Long visitTime) {
       this.visitTime = visitTime;
    }
@@ -138,7 +142,4 @@ public class Site {
       this.size = size;
    }
 
-   public void setHtmlValidated(boolean htmlValidated) {
-      this.htmlValidated = htmlValidated;
-   }
 }

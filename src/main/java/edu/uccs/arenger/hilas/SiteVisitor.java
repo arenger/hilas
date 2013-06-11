@@ -22,6 +22,8 @@ public class SiteVisitor implements Runnable {
 
    public static final int SEC_BTWN = 3; //seconds between runs
 
+   private Site site;
+
    private boolean isJsTag(TagNode tn) {
       String type = tn.getAttributeByName("type");
       if ((type != null) && (type.equalsIgnoreCase("text/javascript"))) {
@@ -34,7 +36,19 @@ public class SiteVisitor implements Runnable {
       return false;
    }
 
-   private void visitJs(String url, String siteId) {
+   private boolean isCssTag(TagNode tn) {
+      String type = tn.getAttributeByName("type");
+      if ((type != null) && (type.equalsIgnoreCase("text/css"))) {
+         return true;
+      }
+      String rel = tn.getAttributeByName("rel");
+      if ((rel != null) && (rel.equalsIgnoreCase("stylesheet"))) {
+         return true;
+      }
+      return false;
+   }
+
+   private void visitJs(String url) {
       try {
          String content = Util.getContent(new URL(url));
          String md5 = Util.md5(content);
@@ -43,7 +57,7 @@ public class SiteVisitor implements Runnable {
             js = new JavaScript(url, md5, content.length());
             js.insert();
          }
-         js.linkToSite(siteId);
+         js.linkToSite(site.getId());
       } catch (IOException e) {
          LOGGER.error("problem visiting js", e);
       } catch (DalException e) {
@@ -51,12 +65,45 @@ public class SiteVisitor implements Runnable {
       }
    }
 
+   private void fishForJs(TagNode root) {
+      // find the javascript source tags -
+      TagNode[] arr = root.getElementsByName("script", true);
+      for (TagNode tn : arr) {
+         if (isJsTag(tn)) {
+            String src = tn.getAttributeByName("src");
+            if ((src != null) && (src.length() > 0)) {
+               visitJs(Util.fullUrl(site.getUrl(), src));
+            }
+         } else {
+            //TODO gather in-page js?
+         }
+      }
+   }
+
+   private void fishForCss(TagNode root) {
+      // find the css link tags -
+      TagNode[] arr = root.getElementsByName("link", true);
+      for (TagNode tn : arr) {
+         if (isCssTag(tn)) {
+            String href = tn.getAttributeByName("href");
+            if ((href != null) && (href.length() > 0)) {
+               //TODO
+            }
+         } else {
+            //TODO gather in-page css?
+         }
+      }
+   }
+
    public void wrappedRun() throws DalException {
-      Site site = Site.nextUnvisited();
+      site = Site.nextUnvisited();
       if (site == null) {
          LOGGER.info("no sites to visit");
          return;
       }
+      site.setVisitTime(System.currentTimeMillis());
+      site.setState(Site.State.VISITING);
+      site.update();
       LOGGER.info("visiting: {}", site.getUrl());
 
       String html = null;
@@ -64,31 +111,24 @@ public class SiteVisitor implements Runnable {
          html = Util.getContent(new URL(site.getUrl()));
       } catch (Exception e) {
          LOGGER.error("problem loading url", e);
+         site.setState(Site.State.ERROR);
+         site.update();
+         return;
       }
 
       HtmlCleaner hc = new HtmlCleaner();
       if (html != null) {
          site.setSize(html.length());
          TagNode root = hc.clean(html);
-         // find the javascript source tags -
-         TagNode[] arr = root.getElementsByName("script", true);
-         for (TagNode tn : arr) {
-            if (isJsTag(tn)) {
-               String src = tn.getAttributeByName("src");
-               if ((src != null) && (src.length() > 0)) {
-                  visitJs(Util.fullUrl(site.getUrl(), src), site.getId());
-               }
-            } else {
-               //TODO gather in-page js?
-            }
-         }
-
-         //TODO visit frames and iframes -
+         fishForJs(root);
+         fishForCss(root);
       } else {
          site.setSize(0);
       }
 
-      site.setVisitTime(System.currentTimeMillis());
+      //TODO recursive call for frames and iframes -
+
+      site.setState(Site.State.VISITED);
       site.update();
    }
 
