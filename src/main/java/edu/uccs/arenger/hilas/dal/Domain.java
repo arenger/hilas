@@ -1,5 +1,6 @@
 package edu.uccs.arenger.hilas.dal;
 
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -7,8 +8,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
-import java.util.regex.Matcher;
-import java.util.regex.Pattern;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,8 +20,6 @@ public final class Domain {
    
    private static ConcurrentMap<String,String> cache
       = new ConcurrentHashMap<String,String>(); //domain->id
-   private static Pattern domainFromUrl =
-      Pattern.compile("^https?:\\/\\/(.+?)\\/");
 
    private static final String INS = "insert into domain values (?, ?)";
    private static final String SEL_DOM =
@@ -33,15 +30,8 @@ public final class Domain {
       this.domain = domain;
    }
 
-   public static Domain getFromUrl(String url) throws DalException {
-      Matcher m = domainFromUrl.matcher(url);
-      String domain = null;
-      if (m.find()) {
-         domain = m.group(1);
-      } else {
-         throw new DalException("could not parse url");
-      }
-      return get(domain);
+   public static Domain get(URL url) throws DalException {
+      return get(url.getHost());
    }
 
    public static Domain get(String domain) throws DalException {

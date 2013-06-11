@@ -1,5 +1,7 @@
 package edu.uccs.arenger.hilas.dal;
 
+import java.net.MalformedURLException;
+import java.net.URL;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -16,7 +18,7 @@ public class Site {
 
    private String  id;
    private String  domainId;
-   private String  url;
+   private URL     url;
    private String  source;
    private State   state;
    private Long    visitTime;
@@ -33,7 +35,7 @@ public class Site {
    private static final String UPD = 
       "update site set state = ?, visitTime = ?, size = ? where id = ?";
 
-   public Site(String url, String source) {
+   public Site(URL url, String source) {
       id = UUID.randomUUID().toString();
       this.url = url;
       this.source = source;
@@ -43,7 +45,11 @@ public class Site {
    private Site(ResultSet rs) throws SQLException {
       id = rs.getString("id");
       domainId = rs.getString("domainId");
-      url = rs.getString("url");
+      try {
+         url = new URL(rs.getString("url"));
+      } catch (MalformedURLException e) {
+         LOGGER.warn("malformed url for id {}", id);
+      }
       source = rs.getString("source");
       state = State.valueOf(rs.getString("state"));
       Timestamp ts = rs.getTimestamp("visitTime");
@@ -56,7 +62,7 @@ public class Site {
       Util.notNull(url, "url");
       Util.notNull(source, "source");
       if (domainId == null) {
-         domainId = Domain.getFromUrl(url).getId();
+         domainId = Domain.get(url).getId();
       }
 
       // Note: The close method of BoneCp's ConnectionHandle doesn't
@@ -69,7 +75,7 @@ public class Site {
            PreparedStatement ps = conn.prepareStatement(INS)) {
          ps.setString(1, id);
          ps.setString(2, domainId);
-         ps.setString(3, url);
+         ps.setString(3, url.toString());
          ps.setString(4, source);
          ps.setString(5, state.toString());
          if (visitTime != null) {
@@ -126,7 +132,7 @@ public class Site {
       return id;
    }
 
-   public String getUrl() {
+   public URL getUrl() {
       return url;
    }
 

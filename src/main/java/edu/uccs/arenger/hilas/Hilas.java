@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.File;
 import java.io.FileReader;
 import java.io.IOException;
+import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Properties;
 import java.util.concurrent.Executors;
@@ -110,8 +111,18 @@ public final class Hilas {
          String source = FilenameUtils.getBaseName(loadFile.getName());
          String line;
          while ((line = in.readLine()) != null) {
-            Site site = new Site(line, source);
-            site.insert();
+            URL url = null;
+            try {
+               url = new URL(line);
+               if (Util.protocolOk(url)) {
+                  Site site = new Site(url, source);
+                  site.insert();
+               } else {
+                  LOGGER.error("unsupported protocol: " + url);
+               }
+            } catch (MalformedURLException e) {
+               LOGGER.error("malformed url: " + url);
+            }
          }
       } catch (DalException|IOException e) {
          LOGGER.error("problem", e);

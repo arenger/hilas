@@ -15,6 +15,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JavaScript` (
   `url` VARCHAR(512) NOT NULL COMMENT 'the url at which this js was first found by hilas' ,
   `md5` VARCHAR(32) NOT NULL COMMENT 'md5 hash of the js' ,
   `size` INT NOT NULL COMMENT 'in bytes' ,
+  `jsLinted` TINYINT(1) NOT NULL DEFAULT 0 ,
   `jsHinted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'true if this js has been analyzed by the JsHint tool' ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `md5_UNIQUE` (`md5` ASC) )

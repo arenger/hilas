@@ -1,0 +1,22 @@
+#!/usr/bin/perl
+
+$database = 'hilas';
+$password = 'hilas';
+$username = 'hilas';
+
+##############################################################################
+
+$mysql  = "mysql -u$username -p$password $database";
+@tables = `echo "show tables;" | $mysql`;
+shift @tables; #ignore output column title
+
+for $t (@tables) {
+   $t =~ s/(^\s+|\s+$)//g; #trim
+   $sql .= "select count(*) as $t from $t; ";
+}
+@counts = `echo "$sql" | $mysql`;
+while (@counts) {
+   $table = shift @counts; chop $table;
+   $count = shift @counts; chop $count;
+   printf("%20s: %s\n", $table, $count);
+}
