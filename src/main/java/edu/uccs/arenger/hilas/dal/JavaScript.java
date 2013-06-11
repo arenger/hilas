@@ -91,6 +91,10 @@ public class JavaScript {
       } catch (SQLException e) { throw DalException.of(e); }
    }
 
+   public String getId() {
+      return id;
+   }
+
    public void setJsHinted(boolean jsHinted) {
       this.jsHinted = jsHinted;
    }

@@ -9,6 +9,7 @@ import java.util.List;
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
+import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
 
@@ -49,11 +50,13 @@ public class SiteVisitor implements Runnable {
             js = new JavaScript(url, md5, content.length());
             js.insert();
          }
-         js.linkToSite(siteId);
+         try {
+            js.linkToSite(siteId);
+         } catch (PkViolation e) {
+            LOGGER.debug("js already linked: {} - {}", siteId, js.getId());
+         }
       } catch (IOException e) {
          LOGGER.error("problem visiting js", e);
-      } catch (UkViolation e) {
-         LOGGER.warn("unique key violation: {}", e.getMessage());
       } catch (DalException e) {
          LOGGER.error("problem storing js info", e);
       }
@@ -99,11 +102,13 @@ public class SiteVisitor implements Runnable {
             css = new Css(url, md5, content.length());
             css.insert();
          }
-         css.linkToSite(siteId);
+         try {
+            css.linkToSite(siteId);
+         } catch (PkViolation e) {
+            LOGGER.debug("css already linked: {} - {}", siteId, css.getId());
+         }
       } catch (IOException e) {
          LOGGER.error("problem visiting css", e);
-      } catch (UkViolation e) {
-         LOGGER.warn("unique key violation: {}", e.getMessage());
       } catch (DalException e) {
          LOGGER.error("problem storing css info", e);
       }
@@ -157,7 +162,8 @@ public class SiteVisitor implements Runnable {
       for (URL url : children) {
          Site site = new Site(url, "hilas:sub");
          try {
-            site.insert();
+            site.insert(); // note that a UK exception here also means that
+                           // site.getId() is invalid and should not be used.
             visit(site, depth + 1);
          } catch (UkViolation e) {
             LOGGER.debug("uk violation: {}", e.getMessage());
