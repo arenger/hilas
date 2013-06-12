@@ -11,7 +11,7 @@ import java.util.UUID;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class JavaScript {
+public class JavaScript extends SiteResource {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JavaScript.class);
 
@@ -32,7 +32,7 @@ public class JavaScript {
    private JavaScript() {}
 
    public JavaScript(URL url, String md5, int size) {
-      id = UUID.randomUUID().toString();
+      // leave as null until successful write to db
       this.url = url;
       this.md5 = md5;
       this.size = size;
@@ -65,7 +65,7 @@ public class JavaScript {
    }
 
    public void insert() throws DalException {
-      Util.notNull(id, "id");
+      id = UUID.randomUUID().toString();
       Util.notNull(url, "url");
       Util.notNull(md5, "md5");
       try (Connection conn = Pool.getConnection();
@@ -78,7 +78,10 @@ public class JavaScript {
          ps.setBoolean(6, jsHinted);
          ps.executeUpdate();
          LOGGER.info("inserted new js: {} - {}", id, url);
-      } catch (SQLException e) { throw DalException.of(e); }
+      } catch (SQLException e) {
+         id = null;
+         throw DalException.of(e);
+      }
    }
 
    public void linkToSite(String siteId) throws DalException {

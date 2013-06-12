@@ -16,7 +16,7 @@ import org.slf4j.LoggerFactory;
  * both js and css resources with a type... but after designing down that
  * road for a bit, it seemed that it could affect the speed of analysis,
  * which is the whole point of hilas... so, my appologies to Dr. Codd. */
-public class Css {
+public class Css extends SiteResource {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(Css.class);
 
@@ -36,7 +36,7 @@ public class Css {
    private Css() {}
 
    public Css(URL url, String md5, int size) {
-      id = UUID.randomUUID().toString();
+      // leave as null until successful write to db
       this.url = url;
       this.md5 = md5;
       this.size = size;
@@ -67,7 +67,7 @@ public class Css {
    }
 
    public void insert() throws DalException {
-      Util.notNull(id, "id");
+      id = UUID.randomUUID().toString();
       Util.notNull(url, "url");
       Util.notNull(md5, "md5");
       try (Connection conn = Pool.getConnection();
@@ -79,7 +79,10 @@ public class Css {
          ps.setBoolean(5, validated);
          ps.executeUpdate();
          LOGGER.info("inserted new css: {} - {}", id, url);
-      } catch (SQLException e) { throw DalException.of(e); }
+      } catch (SQLException e) {
+         id = null;
+         throw DalException.of(e);
+      }
    }
 
    public void linkToSite(String siteId) throws DalException {

@@ -13,6 +13,7 @@ import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
 import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Site;
+import edu.uccs.arenger.hilas.dal.SiteResource;
 
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
@@ -27,111 +28,91 @@ public class SiteVisitor implements Runnable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(SiteVisitor.class);
 
-   public  static final int SEC_BTWN  = 3; //seconds between runs
+   public  static final int SEC_BTWN  = 1; //seconds between runs
    private static final int MAX_DEPTH = 5; //frames within frames
    private Set<String> subSiteIds;
 
-   private boolean isJsTag(TagNode tn) {
-      String type = tn.getAttributeByName("type");
-      if ((type != null) && (type.equalsIgnoreCase("text/javascript"))) {
-         return true;
-      }
-      String lang = tn.getAttributeByName("language");
-      if ((lang != null) && (lang.equalsIgnoreCase("javascript"))) {
-         return true;
-      }
-      return false;
-   }
-
-   private void linkJsEntry(String siteId, URL url) {
+   private void linkRsrcEntry(
+      String siteId, URL url, Class<? extends SiteResource> type) {
       try {
          String content = Util.getContent(url);
          String md5 = Util.md5(content);
-         JavaScript js = JavaScript.get(md5);
-         if (js == null) {
-            js = new JavaScript(url, md5, content.length());
-            js.insert();
+         SiteResource rsrc = SiteResource.get(type, md5);
+         if (rsrc == null) {
+            rsrc = SiteResource.create(type, url, md5, content.length());
+            rsrc.insert();
          }
          try {
-            js.linkToSite(siteId);
+            rsrc.linkToSite(siteId);
          } catch (PkViolation e) {
-            LOGGER.debug("js already linked: {} - {}", siteId, js.getId());
+            LOGGER.debug(
+               "rsrc already linked: {} - {}", siteId, rsrc.getId());
          }
       } catch (IOException e) {
-         LOGGER.error("problem visiting js", e);
+         LOGGER.error("problem visiting rsrc: {}", e.getMessage());
       } catch (DalException e) {
-         LOGGER.error("problem storing js info", e);
+         LOGGER.error("problem storing rsrc info", e);
       }
    }
 
-   private void fishForJs(Site site, TagNode root) {
-      // find the javascript source tags -
-      TagNode[] arr = root.getElementsByName("script", true);
-      for (TagNode tn : arr) {
-         if (isJsTag(tn)) {
-            String src = tn.getAttributeByName("src");
-            if ((src != null) && (src.length() > 0)) {
-               try {
-                  linkJsEntry(site.getId(), new URL(site.getUrl(), src));
-               } catch (MalformedURLException e) {
-                  LOGGER.warn("malformed js url: {}", src);
-               }
-            }
-         } else {
-            //TODO gather in-page js?
-         }
-      }
-   }
-
-   private boolean isCssTag(TagNode tn) {
-      String type = tn.getAttributeByName("type");
-      if ((type != null) && (type.equalsIgnoreCase("text/css"))) {
-         return true;
-      }
-      String rel = tn.getAttributeByName("rel");
-      if ((rel != null) && (rel.equalsIgnoreCase("stylesheet"))) {
-         return true;
-      }
-      return false;
-   }
-
-   private void linkCssEntry(String siteId, URL url) {
-      try {
-         String content = Util.getContent(url);
-         String md5 = Util.md5(content);
-         Css css = Css.get(md5);
-         if (css == null) {
-            css = new Css(url, md5, content.length());
-            css.insert();
-         }
-         try {
-            css.linkToSite(siteId);
-         } catch (PkViolation e) {
-            LOGGER.debug("css already linked: {} - {}", siteId, css.getId());
-         }
-      } catch (IOException e) {
-         LOGGER.error("problem visiting css", e);
-      } catch (DalException e) {
-         LOGGER.error("problem storing css info", e);
-      }
-   }
-
-   private void fishForCss(Site site, TagNode root) {
+   private void fishForResource(Site site, TagNode root, ResourceNet net) {
       // find the css link tags -
-      TagNode[] arr = root.getElementsByName("link", true);
+      TagNode[] arr = root.getElementsByName(net.tagName(), true);
       for (TagNode tn : arr) {
-         if (isCssTag(tn)) {
-            String href = tn.getAttributeByName("href");
+         if (net.catches(tn)) {
+            String href = tn.getAttributeByName(net.attName());
             if ((href != null) && (href.length() > 0)) {
                try {
-                  linkCssEntry(site.getId(), new URL(site.getUrl(), href));
+                  linkRsrcEntry(site.getId(),
+                     new URL(site.getUrl(), href), net.dtoType());
                } catch (MalformedURLException e) {
-                  LOGGER.warn("malformed css url: {}", href);
+                  LOGGER.warn("malformed rsrc url: {}", href);
                }
             }
          } else {
-            //TODO gather in-page css?
+            //TODO gather in-page resource content?
          }
+      }
+   }
+
+   private interface ResourceNet {
+      Class<? extends SiteResource> dtoType();
+      String tagName();
+      String attName();
+      boolean catches(TagNode tn);
+   }
+
+   private class JsNet implements ResourceNet {
+      public Class<JavaScript> dtoType() { return JavaScript.class; }
+      public String tagName() { return "script"; }
+      public String attName() { return "src"; }
+      public boolean catches(TagNode tn) {
+         String type = tn.getAttributeByName("type");
+         if ((type != null) && (type.equalsIgnoreCase("text/javascript"))) {
+            return true;
+         }
+         String lang = tn.getAttributeByName("language");
+         if ((lang != null) && (lang.equalsIgnoreCase("javascript"))) {
+            return true;
+         }
+         return false;
+      }
+   }
+
+   private class CssNet implements ResourceNet {
+      public Class<Css> dtoType() { return Css.class; }
+      public String tagName() { return "link"; }
+      public String attName() { return "href"; }
+      public boolean catches(TagNode tn) {
+         String type = tn.getAttributeByName("type");
+         if ((type != null) && (type.equalsIgnoreCase("text/css"))) {
+            return true;
+         }
+         String rel = tn.getAttributeByName("rel");
+         if ((rel != null) && (rel.equalsIgnoreCase("stylesheet"))) {
+            return true;
+         }
+         return false;
       }
    }
 
@@ -202,12 +183,14 @@ public class SiteVisitor implements Runnable {
             return;
          }
 
-         HtmlCleaner hc = new HtmlCleaner();
+         HtmlCleaner hc     = new HtmlCleaner();
+         JsNet       jsNet  = new JsNet();
+         CssNet      cssNet = new CssNet();
          if (html != null) {
             site.setSize(html.length());
             TagNode root = hc.clean(html);
-            fishForJs( site, root);
-            fishForCss(site, root);
+            fishForResource(site, root, jsNet);
+            fishForResource(site, root, cssNet);
             visitChildren(site, root, depth);
          } else {
             site.setSize(0);
