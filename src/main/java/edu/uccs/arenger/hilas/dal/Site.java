@@ -8,6 +8,7 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.Set;
 import java.util.UUID;
 
 import org.slf4j.Logger;
@@ -30,13 +31,19 @@ public class Site {
 
    private static final String SEL_UNVISITED = 
       "select * from site where state = 'NEW' limit 1";
+   private static final String SEL_URL = 
+      "select * from site where url = ?";
    private static final String INS =
       "insert into site values (?,?,?,?,?,?,?)";
    private static final String UPD = 
       "update site set state = ?, visitTime = ?, size = ? where id = ?";
+   private static final String DEL_SITE_FRAME = 
+      "delete from siteframe where topsite = ?";
+   private static final String INS_SITE_FRAME = 
+      "insert into siteframe values (?,?)";
 
    public Site(URL url, String source) {
-      id = UUID.randomUUID().toString();
+      // leave id null until this Site is written to the DB
       this.url = url;
       this.source = source;
       state = State.NEW;
@@ -58,7 +65,7 @@ public class Site {
    }
 
    public void insert() throws DalException {
-      Util.notNull(id, "id");
+      id = UUID.randomUUID().toString();
       Util.notNull(url, "url");
       Util.notNull(source, "source");
       if (domainId == null) {
@@ -90,7 +97,10 @@ public class Site {
          }
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
-      } catch (SQLException e) { throw DalException.of(e); }
+      } catch (SQLException e) {
+         id = null; // in case getId() is used after failed insert
+         throw DalException.of(e);
+      }
    }
 
    public void update() throws DalException {
@@ -109,8 +119,51 @@ public class Site {
          }
          ps.setString(4, id);
          ps.executeUpdate();
+      } catch (SQLException e) { throw new DalException(e); }
+   }
+
+   /* Typically subSiteIds would be a property of this class, with a getter
+    * and setter and retreieved when a Site is retreived and saveded when
+    * a site is saved, etc -- but Hilas doesn't need that functionality. */
+   public static void saveSubSiteIds(
+      String topSiteId, Set<String> subSiteIds) throws DalException {
+      if (topSiteId == null) { return; }
+      Connection conn = null;
+      PreparedStatement delps = null;
+      PreparedStatement insps = null;
+      try {
+         conn = Pool.getConnection();
+         delps = conn.prepareStatement(DEL_SITE_FRAME);
+         insps = conn.prepareStatement(INS_SITE_FRAME);
+         conn.setAutoCommit(false);
+         delps.setString(1, topSiteId);
+         delps.executeUpdate();
+
+         if ((subSiteIds != null) && (subSiteIds.size() > 0)) {
+            insps.setString(1, topSiteId);
+            for (String subId :subSiteIds) {
+               insps.setString(2, subId);
+               insps.addBatch();
+            }
+            insps.executeBatch();
+         }
+         conn.commit();
+         LOGGER.debug("site id {} now associates with {} subsites",
+            topSiteId, (subSiteIds == null) ? 0 : subSiteIds.size());
       } catch (SQLException e) {
+         if (conn != null) {
+            try { conn.rollback(); } catch(SQLException ex) {}
+         }
          throw new DalException(e);
+      } finally {
+         try {
+            if (delps != null) { delps.close(); }
+            if (insps != null) { insps.close(); }
+            if (conn != null) {
+               conn.setAutoCommit(true);
+               conn.close();
+            }
+         } catch (SQLException e) {} //oh no! oh no! and empty catch!
       }
    }
 
@@ -118,6 +171,20 @@ public class Site {
       Site site = null;
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(SEL_UNVISITED)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            site = new Site(rs);
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      return site;
+   }
+
+   public static Site forUrl(URL url) throws DalException {
+      Util.notNull(url, "url");
+      Site site = null;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_URL)) {
+         ps.setString(1, url.toString());
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             site = new Site(rs);

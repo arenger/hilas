@@ -132,13 +132,13 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `hilas`.`SiteFrame` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`SiteFrame` (
-  `site` VARCHAR(36) NOT NULL ,
+  `topsite` VARCHAR(36) NOT NULL COMMENT 'if a page has a subpage that in turn has as subpage, etc... the \"topsite\" is root of the tree -- the original site that was visited.' ,
   `subsite` VARCHAR(36) NOT NULL ,
-  PRIMARY KEY (`site`, `subsite`) ,
-  INDEX `fk_site_frame_site1_idx` (`site` ASC) ,
+  PRIMARY KEY (`topsite`, `subsite`) ,
+  INDEX `fk_site_frame_site1_idx` (`topsite` ASC) ,
   INDEX `fk_site_frame_site2_idx` (`subsite` ASC) ,
   CONSTRAINT `fk_site_frame_site1`
-    FOREIGN KEY (`site` )
+    FOREIGN KEY (`topsite` )
     REFERENCES `hilas`.`Site` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,

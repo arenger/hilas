@@ -4,14 +4,15 @@ import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
 import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Site;
-import edu.uccs.arenger.hilas.dal.UkViolation;
 
 import org.htmlcleaner.HtmlCleaner;
 import org.htmlcleaner.TagNode;
@@ -28,6 +29,7 @@ public class SiteVisitor implements Runnable {
 
    public  static final int SEC_BTWN  = 3; //seconds between runs
    private static final int MAX_DEPTH = 5; //frames within frames
+   private Set<String> subSiteIds;
 
    private boolean isJsTag(TagNode tn) {
       String type = tn.getAttributeByName("type");
@@ -155,21 +157,25 @@ public class SiteVisitor implements Runnable {
       return refs;
    }
 
-   private void visitChildren(Site parent, TagNode root, int depth) {
+   private void visitChildren(Site parent, TagNode root, int depth)
+      throws DalException {
       List<URL> children = new ArrayList<URL>();
-      children.addAll(getRefs(parent.getUrl(), root, "frame", "href"));
+      children.addAll(getRefs(parent.getUrl(), root, "frame" , "src"));
       children.addAll(getRefs(parent.getUrl(), root, "iframe", "src"));
       for (URL url : children) {
-         Site site = new Site(url, "hilas:sub");
-         try {
-            site.insert(); // note that a UK exception here also means that
-                           // site.getId() is invalid and should not be used.
-            visit(site, depth + 1);
-         } catch (UkViolation e) {
-            LOGGER.debug("uk violation: {}", e.getMessage());
+         Site site = Site.forUrl(url);
+         if (site != null) {
             LOGGER.info("already visited: {}", url);
-         } catch (DalException e) {
-            LOGGER.error("error inserting new site", e);
+            subSiteIds.add(site.getId());
+         } else {
+            site = new Site(url, "hilas:sub");
+            try {
+               site.insert();
+               subSiteIds.add(site.getId());
+               visit(site, depth + 1);
+            } catch (DalException e) {
+               LOGGER.error("error inserting new site", e);
+            }
          }
       }
    }
@@ -189,8 +195,8 @@ public class SiteVisitor implements Runnable {
          String html = null;
          try {
             html = Util.getContent(site.getUrl());
-         } catch (Exception e) {
-            LOGGER.error("problem loading url", e);
+         } catch (IOException e) {
+            LOGGER.error("problem loading url: {}", e.getMessage());
             site.setState(Site.State.ERROR);
             site.update();
             return;
@@ -207,8 +213,6 @@ public class SiteVisitor implements Runnable {
             site.setSize(0);
          }
 
-         //TODO recursive call for frames and iframes -
-
          site.setState(Site.State.VISITED);
          site.update();
       } catch (DalException e) {
@@ -218,11 +222,15 @@ public class SiteVisitor implements Runnable {
 
    private void wrappedRun() throws DalException {
       Site site = Site.nextUnvisited();
+      subSiteIds = new HashSet<String>();
       if (site == null) {
          LOGGER.info("no sites to visit");
          return;
       }
       visit(site, 0);
+      if (subSiteIds.size() > 0) {
+         Site.saveSubSiteIds(site.getId(),subSiteIds);
+      }
    }
 
    public void run() {
