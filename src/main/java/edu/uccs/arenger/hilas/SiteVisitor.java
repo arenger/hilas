@@ -30,6 +30,7 @@ public class SiteVisitor implements Runnable {
 
    public  static final int SEC_BTWN  = 1; //seconds between runs
    private static final int MAX_DEPTH = 5; //frames within frames
+   private static final int MAX_SUBSITES = 12; //max number of subsites 
    private Set<String> subSiteIds;
 
    private void linkRsrcEntry(
@@ -144,18 +145,22 @@ public class SiteVisitor implements Runnable {
       children.addAll(getRefs(parent.getUrl(), root, "frame" , "src"));
       children.addAll(getRefs(parent.getUrl(), root, "iframe", "src"));
       for (URL url : children) {
-         Site site = Site.forUrl(url);
-         if (site != null) {
-            LOGGER.info("already visited: {}", url);
-            subSiteIds.add(site.getId());
+         if (subSiteIds.size() >= MAX_SUBSITES) {
+            LOGGER.warn("reached max subsite count. skipping: {}", url);
          } else {
-            site = new Site(url, "hilas:sub");
-            try {
-               site.insert();
+            Site site = Site.forUrl(url);
+            if (site != null) {
+               LOGGER.info("already visited: {}", url);
                subSiteIds.add(site.getId());
-               visit(site, depth + 1);
-            } catch (DalException e) {
-               LOGGER.error("error inserting new site", e);
+            } else {
+               site = new Site(url, "hilas:sub");
+               try {
+                  site.insert();
+                  subSiteIds.add(site.getId());
+                  visit(site, depth + 1);
+               } catch (DalException e) {
+                  LOGGER.error("error inserting new site", e);
+               }
             }
          }
       }
@@ -165,9 +170,15 @@ public class SiteVisitor implements Runnable {
       if (depth > MAX_DEPTH) {
          LOGGER.warn(
             "visit depth exceeded. skipping visit to: {}", site.getUrl());
+         try {
+            site.setState(Site.State.ERROR);
+            site.update();
+         } catch (DalException e) {
+            LOGGER.error("error updating site", e);
+         }
          return;
       }
-      LOGGER.info("visiting: {}", site.getUrl());
+      LOGGER.info("depth {}, visiting {}", depth, site.getUrl());
       try {
          site.setVisitTime(System.currentTimeMillis());
          site.setState(Site.State.VISITING);
