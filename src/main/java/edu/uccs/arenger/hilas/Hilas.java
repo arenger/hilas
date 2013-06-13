@@ -101,6 +101,8 @@ public final class Hilas {
             Integer.parseInt(props.getProperty("threadPoolSize")));
          runPool.scheduleWithFixedDelay(
             new SiteVisitor(), 0, SiteVisitor.SEC_BTWN, TimeUnit.SECONDS);
+         runPool.scheduleWithFixedDelay(
+            new SiteVisitor(), 0, SiteVisitor.SEC_BTWN, TimeUnit.SECONDS);
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }

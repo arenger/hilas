@@ -187,8 +187,8 @@ public class SiteVisitor implements Runnable {
          String html = null;
          try {
             html = Util.getContent(site.getUrl());
-         } catch (IOException e) {
-            LOGGER.error("problem loading url: {}", e.getMessage());
+         } catch (Exception e) {
+            LOGGER.warn("problem loading url. msg: {}", e.getMessage());
             site.setState(Site.State.ERROR);
             site.update();
             return;
@@ -214,16 +214,20 @@ public class SiteVisitor implements Runnable {
       }
    }
 
-   private void wrappedRun() throws DalException {
-      Site site = Site.nextUnvisited();
-      subSiteIds = new HashSet<String>();
-      if (site == null) {
-         LOGGER.info("no sites to visit");
-         return;
-      }
-      visit(site, 0);
-      if (subSiteIds.size() > 0) {
-         Site.saveSubSiteIds(site.getId(),subSiteIds);
+   private void wrappedRun() {
+      try {
+         Site site = Site.nextUnvisited();
+         subSiteIds = new HashSet<String>();
+         if (site == null) {
+            LOGGER.info("no sites to visit");
+            return;
+         }
+         visit(site, 0);
+         if (subSiteIds.size() > 0) {
+            Site.saveSubSiteIds(site.getId(),subSiteIds);
+         }
+      } catch (DalException e) {
+         LOGGER.error("dal problem", e);
       }
    }
 
@@ -231,7 +235,7 @@ public class SiteVisitor implements Runnable {
       try {
          wrappedRun();
       } catch (Exception e) {
-         LOGGER.error("problem",e);
+         LOGGER.error("thread pool protection catch",e);
       }
    }
 }
