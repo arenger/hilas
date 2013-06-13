@@ -154,13 +154,14 @@ public class SiteVisitor implements Runnable {
                subSiteIds.add(site.getId());
             } else {
                site = new Site(url, "hilas:sub");
+               site.setState(Site.State.VISITING);
                try {
                   site.insert();
                   subSiteIds.add(site.getId());
-                  visit(site, depth + 1);
                } catch (DalException e) {
                   LOGGER.error("error inserting new site", e);
                }
+               visit(site, depth + 1);
             }
          }
       }
@@ -181,7 +182,6 @@ public class SiteVisitor implements Runnable {
       LOGGER.info("depth {}, visiting {}", depth, site.getUrl());
       try {
          site.setVisitTime(System.currentTimeMillis());
-         site.setState(Site.State.VISITING);
          site.update();
 
          String html = null;

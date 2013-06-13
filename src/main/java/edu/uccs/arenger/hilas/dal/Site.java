@@ -148,7 +148,7 @@ public class Site {
             insps.executeBatch();
          }
          conn.commit();
-         LOGGER.debug("site id {} now associates with {} subsites",
+         LOGGER.debug("site id {} now associates with {} subsite(s)",
             topSiteId, (subSiteIds == null) ? 0 : subSiteIds.size());
       } catch (SQLException e) {
          if (conn != null) {
@@ -167,7 +167,9 @@ public class Site {
       }
    }
 
-   public static Site nextUnvisited() throws DalException {
+   /* Retrieves the next unvisted site, AND marks it as being visited.
+    * Returns null if there are no sites marked as 'NEW'. */
+   public static synchronized Site nextUnvisited() throws DalException {
       Site site = null;
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(SEL_UNVISITED)) {
@@ -176,6 +178,10 @@ public class Site {
             site = new Site(rs);
          }
       } catch (SQLException e) { throw new DalException(e); }
+      if (site != null) {
+         site.setState(State.VISITING);
+         site.update();
+      }
       return site;
    }
 
