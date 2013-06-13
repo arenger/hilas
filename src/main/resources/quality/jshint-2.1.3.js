@@ -1,4 +1,5 @@
-//2.1.3
+var window = {}; //since we're running in rhino
+//2.1.3 -
 var JSHINT;
 (function () {
 var require;

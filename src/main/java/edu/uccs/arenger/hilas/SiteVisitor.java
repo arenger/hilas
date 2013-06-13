@@ -7,6 +7,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.ScheduledFuture;
+import java.util.concurrent.TimeUnit;
 
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
@@ -24,14 +26,35 @@ import org.slf4j.LoggerFactory;
  * JavaScript, Css, SiteJs, SiteCss, and SiteFrame
  * ... and then mark a site as "visted".  Validation/Linting is left
  * for other classes. */
-public class SiteVisitor implements Runnable {
+public class SiteVisitor implements Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(SiteVisitor.class);
 
-   public  static final int SEC_BTWN  = 1; //seconds between runs
    private static final int MAX_DEPTH = 5; //frames within frames
    private static final int MAX_SUBSITES = 12; //max number of subsites 
    private Set<String> subSiteIds;
+   private ScheduledFuture<?> scheduledFuture;
+
+   public long getDelay() {
+      return 1;
+   }
+
+   public TimeUnit getTimeUnit() {
+      return TimeUnit.SECONDS;
+   }
+
+   public void setScheduledFuture(ScheduledFuture<?> scheduledFuture) {
+      this.scheduledFuture = scheduledFuture;
+   }
+
+   private void stopWorking() {
+      if (scheduledFuture != null) {
+         LOGGER.info("stopping: {}", this);
+         scheduledFuture.cancel(false);
+      } else {
+         LOGGER.info("scheduledFuture not set for {}", this);
+      }
+   }
 
    private void linkRsrcEntry(
       String siteId, URL url, Class<? extends SiteResource> type) {
@@ -41,7 +64,8 @@ public class SiteVisitor implements Runnable {
          SiteResource rsrc = SiteResource.get(type, md5);
          if (rsrc == null) {
             rsrc = SiteResource.create(type, url, md5, content.length());
-            rsrc.insert();
+            rsrc.insert(); //possible UK violation here, when SiteVisitors
+                           //are running concurrently -- but rare.
          }
          try {
             rsrc.linkToSite(siteId);
@@ -220,6 +244,7 @@ public class SiteVisitor implements Runnable {
          subSiteIds = new HashSet<String>();
          if (site == null) {
             LOGGER.info("no sites to visit");
+            stopWorking();
             return;
          }
          visit(site, 0);

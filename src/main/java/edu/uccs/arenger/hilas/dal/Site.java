@@ -152,18 +152,16 @@ public class Site {
             topSiteId, (subSiteIds == null) ? 0 : subSiteIds.size());
       } catch (SQLException e) {
          if (conn != null) {
-            try { conn.rollback(); } catch(SQLException ex) {}
+            try { conn.rollback(); } catch(SQLException ex) {
+               LOGGER.error("rollback problem", ex.getMessage());
+            }
          }
          throw new DalException(e);
       } finally {
-         try {
-            if (delps != null) { delps.close(); }
-            if (insps != null) { insps.close(); }
-            if (conn != null) {
-               conn.setAutoCommit(true);
-               conn.close();
-            }
-         } catch (SQLException e) {} //oh no! oh no! and empty catch!
+         Util.close(delps);
+         Util.close(insps);
+         Util.setAutoCommit(conn, true);
+         Util.close(conn);
       }
    }
 

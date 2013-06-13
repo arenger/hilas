@@ -9,6 +9,7 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
+import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FilenameUtils;
@@ -19,6 +20,7 @@ import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
+import edu.uccs.arenger.hilas.quality.JsHinter;
 
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
@@ -93,23 +95,29 @@ public final class Hilas {
       }
    }
 
+   private void startWorker(Worker w) {
+      ScheduledFuture<?> future =
+         runPool.scheduleWithFixedDelay(w, 1, w.getDelay(), w.getTimeUnit());
+      w.setScheduledFuture(future);
+   }
+
    private void corre() {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
          runPool = Executors.newScheduledThreadPool(
             Integer.parseInt(props.getProperty("threadPoolSize")));
-         runPool.scheduleWithFixedDelay(
-            new SiteVisitor(), 0, SiteVisitor.SEC_BTWN, TimeUnit.SECONDS);
-         runPool.scheduleWithFixedDelay(
-            new SiteVisitor(), 0, SiteVisitor.SEC_BTWN, TimeUnit.SECONDS);
+         startWorker(new SiteVisitor());
+         startWorker(new SiteVisitor());
+         startWorker(new JsHinter());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }
    }
 
    private void load() {
-      try (BufferedReader in = new BufferedReader(new FileReader(loadFile))) {
+      try (BufferedReader in
+         = new BufferedReader(new FileReader(loadFile))) {
          Pool.init(props);
          String source = FilenameUtils.getBaseName(loadFile.getName());
          String line;

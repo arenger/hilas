@@ -15,8 +15,8 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JavaScript` (
   `url` VARCHAR(512) NOT NULL COMMENT 'the url at which this js was first found by hilas' ,
   `md5` VARCHAR(32) NOT NULL COMMENT 'md5 hash of the js' ,
   `size` INT NOT NULL COMMENT 'in bytes' ,
-  `jsLinted` TINYINT(1) NOT NULL DEFAULT 0 ,
-  `jsHinted` TINYINT(1) NOT NULL DEFAULT 0 COMMENT 'true if this js has been analyzed by the JsHint tool' ,
+  `lintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' ,
+  `hintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' COMMENT 'true if this js has been analyzed by the JsHint tool' ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `md5_UNIQUE` (`md5` ASC) )
 ENGINE = InnoDB
@@ -151,11 +151,11 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `hilas`.`JsHintMsg`
+-- Table `hilas`.`JsLintMsg`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `hilas`.`JsHintMsg` ;
+DROP TABLE IF EXISTS `hilas`.`JsLintMsg` ;
 
-CREATE  TABLE IF NOT EXISTS `hilas`.`JsHintMsg` (
+CREATE  TABLE IF NOT EXISTS `hilas`.`JsLintMsg` (
   `id` VARCHAR(36) NOT NULL ,
   `message` VARCHAR(256) NOT NULL COMMENT 'the TEMPLATE of the error or warning' ,
   `severity` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'possibly helpful for minimizing set c' ,
@@ -177,7 +177,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsHint` (
   INDEX `fk_JsHint_JsHintMsg1_idx` (`msgId` ASC) ,
   CONSTRAINT `fk_JsHint_JsHintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`JsHintMsg` (`id` )
+    REFERENCES `hilas`.`JsLintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsHint_JavaScript1`
@@ -295,6 +295,30 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`SiteCss` (
   CONSTRAINT `fk_SiteCss_Css1`
     FOREIGN KEY (`cssId` )
     REFERENCES `hilas`.`Css` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION)
+ENGINE = InnoDB;
+
+
+-- -----------------------------------------------------
+-- Table `hilas`.`JsLint`
+-- -----------------------------------------------------
+DROP TABLE IF EXISTS `hilas`.`JsLint` ;
+
+CREATE  TABLE IF NOT EXISTS `hilas`.`JsLint` (
+  `jsId` VARCHAR(36) NOT NULL ,
+  `msgId` VARCHAR(36) NOT NULL ,
+  PRIMARY KEY (`jsId`, `msgId`) ,
+  INDEX `fk_JsLint_JavaScript1_idx` (`jsId` ASC) ,
+  INDEX `fk_JsLint_JsLintMsg1_idx` (`msgId` ASC) ,
+  CONSTRAINT `fk_JsLint_JavaScript1`
+    FOREIGN KEY (`jsId` )
+    REFERENCES `hilas`.`JavaScript` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_JsLint_JsLintMsg1`
+    FOREIGN KEY (`msgId` )
+    REFERENCES `hilas`.`JsLintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
