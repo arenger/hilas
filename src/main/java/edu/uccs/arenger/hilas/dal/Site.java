@@ -9,10 +9,11 @@ import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
 import java.util.Set;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.uccs.arenger.hilas.Util;
 
 public class Site {
    private static final Logger LOGGER = LoggerFactory.getLogger(Site.class);
@@ -29,10 +30,10 @@ public class Site {
       NEW, VISITING, VISITED, VALIDATING, VALID, ERROR
    }
 
+   private static final String SEL = 
+      "select * from site where id = ?";
    private static final String SEL_UNVISITED = 
       "select * from site where state = 'NEW' limit 1";
-   private static final String SEL_URL = 
-      "select * from site where url = ?";
    private static final String INS =
       "insert into site values (?,?,?,?,?,?,?)";
    private static final String UPD = 
@@ -43,7 +44,7 @@ public class Site {
       "insert into siteframe values (?,?)";
 
    public Site(URL url, String source) {
-      // leave id null until this Site is written to the DB
+      id = Util.md5(url.toString());
       this.url = url;
       this.source = source;
       state = State.NEW;
@@ -65,7 +66,6 @@ public class Site {
    }
 
    public void insert() throws DalException {
-      id = UUID.randomUUID().toString();
       Util.notNull(url, "url");
       Util.notNull(source, "source");
       if (domainId == null) {
@@ -98,7 +98,6 @@ public class Site {
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
-         id = null; // in case getId() is used after failed insert
          throw DalException.of(e);
       }
    }
@@ -184,11 +183,10 @@ public class Site {
    }
 
    public static Site forUrl(URL url) throws DalException {
-      Util.notNull(url, "url");
       Site site = null;
       try (Connection conn = Pool.getConnection();
-           PreparedStatement ps = conn.prepareStatement(SEL_URL)) {
-         ps.setString(1, url.toString());
+           PreparedStatement ps = conn.prepareStatement(SEL)) {
+         ps.setString(1, Util.md5(url.toString()));
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             site = new Site(rs);

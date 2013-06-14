@@ -9,23 +9,23 @@ public abstract class SiteResource {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(SiteResource.class);
 
-   public static SiteResource get(
-      Class<? extends SiteResource> type, String md5) throws DalException {
+   public static SiteResource get( Class<? extends SiteResource> type,
+      String content) throws DalException {
       if (type.equals(JavaScript.class)) {
-         return JavaScript.get(md5);
+         return JavaScript.get(content);
       } else if (type.equals(Css.class)) {
-         return Css.get(md5);
+         return Css.get(content);
       } else {
          LOGGER.error("unexpected rsrc type: {}", type);
          return null;
       }
    }
    public static SiteResource create(Class<? extends SiteResource> type,
-      URL url, String md5, int size) throws DalException {
+      URL url, String content) throws DalException {
       if (type.equals(JavaScript.class)) {
-         return new JavaScript(url, md5, size);
+         return new JavaScript(url, content);
       } else if (type.equals(Css.class)) {
-         return new Css(url, md5, size);
+         return new Css(url, content);
       } else {
          LOGGER.error("unexpected rsrc type: {}", type);
          return null;

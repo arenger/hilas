@@ -11,14 +11,12 @@ USE `hilas` ;
 DROP TABLE IF EXISTS `hilas`.`JavaScript` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`JavaScript` (
-  `id` VARCHAR(36) NOT NULL ,
-  `url` VARCHAR(512) NOT NULL COMMENT 'the url at which this js was first found by hilas' ,
-  `md5` VARCHAR(32) NOT NULL COMMENT 'md5 hash of the js' ,
+  `id` VARCHAR(32) NOT NULL COMMENT 'md5 of the js content' ,
+  `url` VARCHAR(2048) NOT NULL COMMENT 'the url at which this js content was first found by hilas' ,
   `size` INT NOT NULL COMMENT 'in bytes' ,
   `lintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' ,
   `hintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' COMMENT 'true if this js has been analyzed by the JsHint tool' ,
-  PRIMARY KEY (`id`) ,
-  UNIQUE INDEX `md5_UNIQUE` (`md5` ASC) )
+  PRIMARY KEY (`id`) )
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = latin1;
 
@@ -82,15 +80,14 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `hilas`.`Site` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`Site` (
-  `id` VARCHAR(36) NOT NULL ,
+  `id` VARCHAR(32) NOT NULL COMMENT 'md5 of the url' ,
   `domainId` VARCHAR(36) NOT NULL ,
-  `url` VARCHAR(512) NOT NULL ,
+  `url` VARCHAR(2048) NOT NULL COMMENT '2048 is too long for a UK, but this is kept unique by id generation' ,
   `source` VARCHAR(32) NOT NULL COMMENT 'eg alexa, blacklist, crawler, subsite, etc' ,
   `state` VARCHAR(16) NOT NULL DEFAULT 'NEW' ,
   `visitTime` TIMESTAMP NULL COMMENT 'if/when this site was visited' ,
   `size` INT NULL COMMENT 'size in bytes of the initial html loaded.  no js-generated html will be included' ,
   PRIMARY KEY (`id`) ,
-  UNIQUE INDEX `url_UNIQUE` (`url` ASC) ,
   INDEX `fk_Site_Domain1_idx` (`domainId` ASC) ,
   CONSTRAINT `fk_Site_Domain1`
     FOREIGN KEY (`domainId` )
@@ -107,8 +104,8 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `hilas`.`SiteJs` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`SiteJs` (
-  `siteId` VARCHAR(36) NOT NULL ,
-  `jsId` VARCHAR(36) NOT NULL ,
+  `siteId` VARCHAR(32) NOT NULL ,
+  `jsId` VARCHAR(32) NOT NULL ,
   PRIMARY KEY (`siteId`, `jsId`) ,
   INDEX `fk_SiteJs_JavaScript1_idx` (`jsId` ASC) ,
   INDEX `fk_SiteJs_Site1_idx` (`siteId` ASC) ,
@@ -132,8 +129,8 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `hilas`.`SiteFrame` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`SiteFrame` (
-  `topsite` VARCHAR(36) NOT NULL COMMENT 'if a page has a subpage that in turn has as subpage, etc... the \"topsite\" is root of the tree -- the original site that was visited.' ,
-  `subsite` VARCHAR(36) NOT NULL ,
+  `topsite` VARCHAR(32) NOT NULL COMMENT 'if a page has a subpage that in turn has as subpage, etc... the \"topsite\" is root of the tree -- the original site that was visited.' ,
+  `subsite` VARCHAR(32) NOT NULL ,
   PRIMARY KEY (`topsite`, `subsite`) ,
   INDEX `fk_site_frame_site1_idx` (`topsite` ASC) ,
   INDEX `fk_site_frame_site2_idx` (`subsite` ASC) ,
@@ -170,7 +167,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`JsHint` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`JsHint` (
-  `jsId` VARCHAR(36) NOT NULL ,
+  `jsId` VARCHAR(32) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
   PRIMARY KEY (`jsId`, `msgId`) ,
   INDEX `fk_JsHint_JavaScript1_idx` (`jsId` ASC) ,
@@ -206,7 +203,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`HtmlValid` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`HtmlValid` (
-  `siteId` VARCHAR(36) NOT NULL ,
+  `siteId` VARCHAR(32) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
   PRIMARY KEY (`siteId`, `msgId`) ,
   INDEX `fk_HtmlValid_HtmlValidMsg1_idx` (`msgId` ASC) ,
@@ -242,13 +239,11 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`Css` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`Css` (
-  `id` VARCHAR(36) NOT NULL ,
-  `url` VARCHAR(512) NOT NULL COMMENT 'the url at which this css was first found by hilas' ,
-  `md5` VARCHAR(32) NOT NULL ,
+  `id` VARCHAR(32) NOT NULL COMMENT 'md5 of the css content' ,
+  `url` VARCHAR(2048) NOT NULL COMMENT 'url at which this css content was first found by hilas' ,
   `size` INT NOT NULL COMMENT 'in bytes' ,
   `validated` TINYINT(1) NOT NULL DEFAULT 0 ,
-  PRIMARY KEY (`id`) ,
-  UNIQUE INDEX `md5_UNIQUE` (`md5` ASC) )
+  PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 
 
@@ -258,7 +253,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`CssValid` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`CssValid` (
-  `cssId` VARCHAR(36) NOT NULL ,
+  `cssId` VARCHAR(32) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
   PRIMARY KEY (`cssId`, `msgId`) ,
   INDEX `fk_CssValid_CssValidMsg1_idx` (`msgId` ASC) ,
@@ -282,8 +277,8 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`SiteCss` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`SiteCss` (
-  `siteId` VARCHAR(36) NOT NULL ,
-  `cssId` VARCHAR(36) NOT NULL ,
+  `siteId` VARCHAR(32) NOT NULL COMMENT '		' ,
+  `cssId` VARCHAR(32) NOT NULL ,
   PRIMARY KEY (`siteId`, `cssId`) ,
   INDEX `fk_SiteCss_Site1_idx` (`siteId` ASC) ,
   INDEX `fk_SiteCss_Css1_idx` (`cssId` ASC) ,
@@ -306,7 +301,7 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`JsLint` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`JsLint` (
-  `jsId` VARCHAR(36) NOT NULL ,
+  `jsId` VARCHAR(32) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
   PRIMARY KEY (`jsId`, `msgId`) ,
   INDEX `fk_JsLint_JavaScript1_idx` (`jsId` ASC) ,

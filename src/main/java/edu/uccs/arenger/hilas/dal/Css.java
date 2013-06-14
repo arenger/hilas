@@ -6,12 +6,13 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-/* Yes, this class is a whole lot like the JavaScript class, and the DB
+import edu.uccs.arenger.hilas.Util;
+
+/* This class is a whole lot like the JavaScript class, and the DB
  * schema could be better normalized with a "Resource" table that holds
  * both js and css resources with a type... but after designing down that
  * road for a bit, it seemed that it could affect the speed of analysis,
@@ -22,12 +23,11 @@ public class Css extends SiteResource {
 
    private String  id;
    private URL     url;
-   private String  md5;
    private int     size;
    private boolean validated;
 
-   private static final String MD5_GET =
-      "select * from css where md5 = ?";
+   private static final String SEL =
+      "select * from css where id = ?";
    private static final String INSERT =
       "insert into css values (?,?,?,?,?)";
    private static final String LINK2SITE =
@@ -35,19 +35,18 @@ public class Css extends SiteResource {
 
    private Css() {}
 
-   public Css(URL url, String md5, int size) {
-      // leave as null until successful write to db
+   public Css(URL url, String content) {
+      id = Util.md5(content);
       this.url = url;
-      this.md5 = md5;
-      this.size = size;
+      size = content.length();
       validated = false;
    }
 
-   public static Css get(String md5) throws DalException {
+   public static Css get(String content) throws DalException {
       Css ret = null;
       try (Connection conn = Pool.getConnection();
-           PreparedStatement ps = conn.prepareStatement(MD5_GET)) {
-         ps.setString(1, md5);
+           PreparedStatement ps = conn.prepareStatement(SEL)) {
+         ps.setString(1, Util.md5(content));
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             Css css = new Css();
@@ -57,7 +56,6 @@ public class Css extends SiteResource {
             } catch (MalformedURLException e) {
                LOGGER.warn("malformed url for id {}", css.id);
             }
-            css.md5 = md5;
             css.size = rs.getInt("size");
             css.validated = rs.getBoolean("validated");
             ret = css;
@@ -67,14 +65,11 @@ public class Css extends SiteResource {
    }
 
    public void insert() throws DalException {
-      id = UUID.randomUUID().toString();
       Util.notNull(url, "url");
-      Util.notNull(md5, "md5");
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(INSERT)) {
          ps.setString(1, id);
          ps.setString(2, url.toString());
-         ps.setString(3, md5);
          ps.setInt(4, size);
          ps.setBoolean(5, validated);
          ps.executeUpdate();

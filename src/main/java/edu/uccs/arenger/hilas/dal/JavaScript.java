@@ -8,10 +8,11 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.uccs.arenger.hilas.Util;
 
 public class JavaScript extends SiteResource {
    private static final Logger LOGGER
@@ -19,13 +20,12 @@ public class JavaScript extends SiteResource {
 
    private String id;
    private URL    url;
-   private String md5;
    private int    size;
    private State  lintState;
    private State  hintState;
 
-   private static final String MD5_GET =
-      "select * from javascript where md5 = ?";
+   private static final String SEL =
+      "select * from javascript where id = ?";
    private static final String INSERT =
       "insert into javascript values (?,?,?,?,?,?)";
    private static final String LINK2SITE =
@@ -46,11 +46,10 @@ public class JavaScript extends SiteResource {
 
    public enum State { UNPROCESSED, PROCESSING, PROCESSED, ERROR }
 
-   public JavaScript(URL url, String md5, int size) {
-      // leave as null until successful write to db
+   public JavaScript(URL url, String content) {
+      id = Util.md5(content);
       this.url = url;
-      this.md5 = md5;
-      this.size = size;
+      size = content.length();
       lintState = State.UNPROCESSED;
       hintState = State.UNPROCESSED;
    }
@@ -62,17 +61,16 @@ public class JavaScript extends SiteResource {
       } catch (MalformedURLException e) {
          LOGGER.warn("malformed url for id {}", id);
       }
-      md5 = rs.getString("md5");
       size = rs.getInt("size");
       lintState = State.valueOf(rs.getString("lintState"));
       hintState = State.valueOf(rs.getString("hintState"));
    }
 
-   public static JavaScript get(String md5) throws DalException {
+   public static JavaScript get(String content) throws DalException {
       JavaScript ret = null;
       try (Connection conn = Pool.getConnection();
-           PreparedStatement ps = conn.prepareStatement(MD5_GET)) {
-         ps.setString(1, md5);
+           PreparedStatement ps = conn.prepareStatement(SEL)) {
+         ps.setString(1, Util.md5(content));
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             ret = new JavaScript(rs);
@@ -82,14 +80,11 @@ public class JavaScript extends SiteResource {
    }
 
    public void insert() throws DalException {
-      id = UUID.randomUUID().toString();
       Util.notNull(url, "url");
-      Util.notNull(md5, "md5");
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(INSERT)) {
          ps.setString(1, id);
          ps.setString(2, url.toString());
-         ps.setString(3, md5);
          ps.setInt(4, size);
          ps.setString(5, lintState.toString());
          ps.setString(6, hintState.toString());
@@ -202,10 +197,6 @@ public class JavaScript extends SiteResource {
 
    public URL getUrl() {
       return url;
-   }
-
-   public String getMd5() {
-      return md5;
    }
 
    public void setLintState(State lintState) {

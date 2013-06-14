@@ -65,6 +65,7 @@ public class JsHinter implements Worker {
 
    private List<String> jshint(String src) throws IOException {
       List<String> raws = new ArrayList<String>();
+      long start = System.currentTimeMillis();
       try {
          Context cx = Context.enter();
          Scriptable scope = cx.initStandardObjects();
@@ -75,6 +76,8 @@ public class JsHinter implements Worker {
       } finally {
          Context.exit();
       }
+      LOGGER.debug("jshint analsysis time: {} sec", String.format("%.3f",
+         (double)(System.currentTimeMillis() - start) / 1000));
       return raws;
    }
 
@@ -97,7 +100,7 @@ public class JsHinter implements Worker {
             return;
          }
          
-         if (!Util.md5(src).equals(js.getMd5())) {
+         if (!Util.md5(src).equals(js.getId())) {
             // not considering this an error, b/c i'm sure there are urls
             // that yield dynamic js.  but it may be worth noting -
             LOGGER.warn("md5 mismatch for js {}", js.getId());

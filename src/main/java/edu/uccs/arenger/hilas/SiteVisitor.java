@@ -60,10 +60,9 @@ public class SiteVisitor implements Worker {
       String siteId, URL url, Class<? extends SiteResource> type) {
       try {
          String content = Util.getContent(url);
-         String md5 = Util.md5(content);
-         SiteResource rsrc = SiteResource.get(type, md5);
+         SiteResource rsrc = SiteResource.get(type, content);
          if (rsrc == null) {
-            rsrc = SiteResource.create(type, url, md5, content.length());
+            rsrc = SiteResource.create(type, url, content);
             rsrc.insert(); //possible UK violation here, when SiteVisitors
                            //are running concurrently -- but rare.
          }

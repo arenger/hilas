@@ -10,6 +10,9 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -20,6 +23,8 @@ import javax.net.ssl.X509TrustManager;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import edu.uccs.arenger.hilas.dal.DalException;
 
 public final class Util {
    private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
@@ -80,6 +85,42 @@ public final class Util {
          LOGGER.error("MD5 DNE.  That's odd.");
       }
       return hash;
+   }
+
+   public static void notNull(Object o, String name) throws DalException {
+      if (o == null) {
+         throw new DalException(name + " can't be null");
+      }
+   }
+
+   public static void close(PreparedStatement ps) {
+      if (ps != null) {
+         try {
+            ps.close();
+         } catch (SQLException e) {
+            LOGGER.error("problem while closing", e);
+         }
+      }
+   }
+
+   public static void close(Connection c) {
+      if (c != null) {
+         try {
+            c.close();
+         } catch (SQLException e) {
+            LOGGER.error("problem while closing", e);
+         }
+      }
+   }
+
+   public static void setAutoCommit(Connection c, boolean active) {
+      if (c != null) {
+         try {
+            c.setAutoCommit(active);
+         } catch (SQLException e) {
+            LOGGER.error("problem setting autocommit", e);
+         }
+      }
    }
 
 }
