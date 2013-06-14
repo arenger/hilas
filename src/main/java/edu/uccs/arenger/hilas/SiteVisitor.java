@@ -60,6 +60,9 @@ public class SiteVisitor implements Worker {
       String siteId, URL url, Class<? extends SiteResource> type) {
       try {
          String content = Util.getContent(url);
+         if (content.length() == 0) {
+            throw new IOException("zero length rsrc at " + url);
+         }
          SiteResource rsrc = SiteResource.get(type, content);
          if (rsrc == null) {
             rsrc = SiteResource.create(type, url, content);

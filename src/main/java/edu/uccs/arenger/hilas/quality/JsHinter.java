@@ -76,8 +76,9 @@ public class JsHinter implements Worker {
       } finally {
          Context.exit();
       }
-      LOGGER.debug("jshint analsysis time: {} sec", String.format("%.3f",
-         (double)(System.currentTimeMillis() - start) / 1000));
+      LOGGER.debug( "jshint analysis time: {} sec, js size: {}",
+         String.format("%.3f", (double)(System.currentTimeMillis() -
+         start) / 1000), src.length());
       return raws;
    }
 
@@ -93,6 +94,9 @@ public class JsHinter implements Worker {
          String src = null;
          try {
             src = Util.getContent(js.getUrl());
+            if (src.length() == 0) {
+               throw new IOException("zero length js");
+            }
          } catch (Exception e) {
             LOGGER.error("problem loading js src. msg: {}", e.getMessage());
             js.setHintState(JavaScript.State.ERROR);
