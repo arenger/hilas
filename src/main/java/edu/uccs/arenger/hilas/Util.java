@@ -36,8 +36,14 @@ public final class Util {
       StringBuilder sb = new StringBuilder();
       URLConnection conn = url.openConnection();
       Pattern p = Pattern.compile("text/html;\\s+charset=([^\\s]+)\\s*");
-      Matcher m = p.matcher(conn.getContentType());
-      String charset = m.matches() ? m.group(1) : DEFAULT_CHARSET;
+      String charset = DEFAULT_CHARSET;
+      try {
+         //getContentType sometimes returns a NullPointerException -
+         Matcher m = p.matcher(conn.getContentType());
+         if (m.matches()) { charset = m.group(1); }
+      } catch (Exception e) {
+         LOGGER.warn("oddity: {}; url: {}", e.getMessage(), url);
+      }
       Reader in = new InputStreamReader(conn.getInputStream(), charset);
       char[] charArray = new char[1024];
       int charsRead = 0;

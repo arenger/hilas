@@ -174,7 +174,7 @@ public class JavaScript extends SiteResource {
             insps.executeBatch();
          }
          conn.commit();
-         LOGGER.info("js {} is linked with {} messages",
+         LOGGER.info("js {} is linked with {} message(s)",
             jsId, msgIdSet.size());
       } catch (SQLException e) {
          if (conn != null) {

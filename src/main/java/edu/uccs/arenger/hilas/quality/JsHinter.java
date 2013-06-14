@@ -13,6 +13,7 @@ import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import org.mozilla.javascript.Context;
+import org.mozilla.javascript.JavaScriptException;
 import org.mozilla.javascript.Scriptable;
 import org.mozilla.javascript.ScriptableObject;
 import org.slf4j.Logger;
@@ -115,7 +116,13 @@ public class JsHinter implements Worker {
             msgSet.addAll(jshint(src));
             JavaScript.linkHintMessages(js.getId(), msgSet);
             js.setHintState(JavaScript.State.PROCESSED);
+         } catch (JavaScriptException e) {
+            LOGGER.warn("JavaScriptException for js id {} - {}",
+               js.getId(), e.getMessage());
+            js.setHintState(JavaScript.State.ERROR);
          } catch (IOException e) {
+            LOGGER.warn("IOException for js id {} - {}",
+               js.getId(), e.getMessage());
             js.setHintState(JavaScript.State.ERROR);
          }
          js.update();

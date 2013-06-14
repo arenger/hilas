@@ -66,8 +66,7 @@ public class SiteVisitor implements Worker {
          SiteResource rsrc = SiteResource.get(type, content);
          if (rsrc == null) {
             rsrc = SiteResource.create(type, url, content);
-            rsrc.insert(); //possible UK violation here, when SiteVisitors
-                           //are running concurrently -- but rare.
+            rsrc.insert();
          }
          try {
             rsrc.linkToSite(siteId);
@@ -76,7 +75,7 @@ public class SiteVisitor implements Worker {
                "rsrc already linked: {} - {}", siteId, rsrc.getId());
          }
       } catch (IOException e) {
-         LOGGER.error("problem visiting rsrc: {}", e.getMessage());
+         LOGGER.warn("problem visiting rsrc: {}", e.getMessage());
       } catch (DalException e) {
          LOGGER.error("problem storing rsrc info", e);
       }
