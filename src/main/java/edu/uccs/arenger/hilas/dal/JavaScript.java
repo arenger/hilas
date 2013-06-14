@@ -27,7 +27,7 @@ public class JavaScript extends SiteResource {
    private static final String SEL =
       "select * from javascript where id = ?";
    private static final String INSERT =
-      "insert into javascript values (?,?,?,?,?,?)";
+      "insert into javascript values (?,?,?,?,?)";
    private static final String LINK2SITE =
       "insert into sitejs values (?,?)";
    private static final String SEL_UNHINTED =
@@ -85,9 +85,9 @@ public class JavaScript extends SiteResource {
            PreparedStatement ps = conn.prepareStatement(INSERT)) {
          ps.setString(1, id);
          ps.setString(2, url.toString());
-         ps.setInt(4, size);
-         ps.setString(5, lintState.toString());
-         ps.setString(6, hintState.toString());
+         ps.setInt(3, size);
+         ps.setString(4, lintState.toString());
+         ps.setString(5, hintState.toString());
          ps.executeUpdate();
          LOGGER.info("inserted new js: {} - {}", id, url);
       } catch (SQLException e) {

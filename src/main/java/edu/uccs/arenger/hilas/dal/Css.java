@@ -29,7 +29,7 @@ public class Css extends SiteResource {
    private static final String SEL =
       "select * from css where id = ?";
    private static final String INSERT =
-      "insert into css values (?,?,?,?,?)";
+      "insert into css values (?,?,?,?)";
    private static final String LINK2SITE =
       "insert into sitecss values (?,?)";
 
@@ -70,8 +70,8 @@ public class Css extends SiteResource {
            PreparedStatement ps = conn.prepareStatement(INSERT)) {
          ps.setString(1, id);
          ps.setString(2, url.toString());
-         ps.setInt(4, size);
-         ps.setBoolean(5, validated);
+         ps.setInt(3, size);
+         ps.setBoolean(4, validated);
          ps.executeUpdate();
          LOGGER.info("inserted new css: {} - {}", id, url);
       } catch (SQLException e) {
