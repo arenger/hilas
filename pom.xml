@@ -52,6 +52,11 @@
       <artifactId>rhino</artifactId>
       <version>1.7R4</version>
     </dependency>
+    <dependency>
+      <groupId>org.w3c.css</groupId>
+      <artifactId>css-validator</artifactId>
+      <version>20100131</version>
+    </dependency>
   </dependencies>
   <build>
     <plugins>
