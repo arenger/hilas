@@ -110,6 +110,10 @@ public final class Hilas {
          startWorker(new SiteVisitor());
          startWorker(new SiteVisitor());
          startWorker(new JsHinter());
+         // TODO either keep a reference to the JsHinter object(s) and
+         // close them upon app shutdown, or change JsHinter such that
+         // it creates a thread for timeout tracking for each run, so
+         // that now shutdown management is required
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }

@@ -26,7 +26,7 @@ import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
 
-public class JsHinter implements Worker {
+public class JsHinter implements Worker, AutoCloseable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JsHinter.class);
    private static final String RSRC_PATH = "quality/";
@@ -34,7 +34,7 @@ public class JsHinter implements Worker {
 
    private ScheduledFuture<?> scheduledFuture;
 
-   private ScheduledExecutorService monitorService
+   private ScheduledExecutorService timeoutService
       = Executors.newSingleThreadScheduledExecutor();
 
    public long getDelay() {
@@ -79,7 +79,7 @@ public class JsHinter implements Worker {
          cx.setDebugger(stopper, null);
          cx.setGeneratingDebug(true);
          cx.setOptimizationLevel(-1);
-         ScheduledFuture<Void> future = monitorService.schedule(
+         ScheduledFuture<Void> future = timeoutService.schedule(
             stopper, MAX_LINT_RUNTIME, TimeUnit.SECONDS);
          Scriptable scope = cx.initStandardObjects();
          ScriptableObject.putProperty(scope, "raws" , raws);
@@ -148,6 +148,10 @@ public class JsHinter implements Worker {
       }
    }
 
+   public void close() {
+      timeoutService.shutdownNow();
+   }
+
    public static void main(String[] args) throws Exception {
       if (args.length != 1) {
          System.out.println("js file required as 1st and only arg");
@@ -161,14 +165,11 @@ public class JsHinter implements Worker {
             sb.append("\n");
          }
       }
-      try {
-         JsHinter me = new JsHinter();
+      try (JsHinter me = new JsHinter()) {
          List<String> msgs = me.jshint(sb.toString());
          for (String msg : msgs) {
             System.out.println(msg);
          }
-      } finally {
-         //shutdown the monitorService pool
       }
    }
 }
