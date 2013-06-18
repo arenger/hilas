@@ -9,6 +9,8 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
@@ -28,8 +30,12 @@ public class JsHinter implements Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JsHinter.class);
    private static final String RSRC_PATH = "quality/";
+   private static final long MAX_LINT_RUNTIME = 3; //seconds
 
    private ScheduledFuture<?> scheduledFuture;
+
+   private ScheduledExecutorService monitorService
+      = Executors.newSingleThreadScheduledExecutor();
 
    public long getDelay() {
       return 1;
@@ -69,11 +75,18 @@ public class JsHinter implements Worker {
       long start = System.currentTimeMillis();
       try {
          Context cx = Context.enter();
+         RhinoStopper stopper = new RhinoStopper();
+         cx.setDebugger(stopper, null);
+         cx.setGeneratingDebug(true);
+         cx.setOptimizationLevel(-1);
+         ScheduledFuture<Void> future = monitorService.schedule(
+            stopper, MAX_LINT_RUNTIME, TimeUnit.SECONDS);
          Scriptable scope = cx.initStandardObjects();
          ScriptableObject.putProperty(scope, "raws" , raws);
          ScriptableObject.putProperty(scope, "input", src);
          runJs(cx, scope, "jshint-load", RSRC_PATH + "jshint-2.1.3.js");
          runJs(cx, scope, "jshint-run" , RSRC_PATH + "run_jshint.js");
+         future.cancel(true);
       } finally {
          Context.exit();
       }
@@ -116,13 +129,9 @@ public class JsHinter implements Worker {
             msgSet.addAll(jshint(src));
             JavaScript.linkHintMessages(js.getId(), msgSet);
             js.setHintState(JavaScript.State.PROCESSED);
-         } catch (JavaScriptException e) {
-            LOGGER.warn("JavaScriptException for js id {} - {}",
-               js.getId(), e.getMessage());
-            js.setHintState(JavaScript.State.ERROR);
-         } catch (IOException e) {
-            LOGGER.warn("IOException for js id {} - {}",
-               js.getId(), e.getMessage());
+         } catch (JavaScriptException|JsInterruptedException|IOException e){
+            LOGGER.warn("{} for js id {} - {}",
+               e.getClass().getName(), js.getId(), e.getMessage());
             js.setHintState(JavaScript.State.ERROR);
          }
          js.update();
@@ -152,10 +161,14 @@ public class JsHinter implements Worker {
             sb.append("\n");
          }
       }
-      JsHinter me = new JsHinter();
-      List<String> msgs = me.jshint(sb.toString());
-      for (String msg : msgs) {
-         System.out.println(msg);
+      try {
+         JsHinter me = new JsHinter();
+         List<String> msgs = me.jshint(sb.toString());
+         for (String msg : msgs) {
+            System.out.println(msg);
+         }
+      } finally {
+         //shutdown the monitorService pool
       }
    }
 }
