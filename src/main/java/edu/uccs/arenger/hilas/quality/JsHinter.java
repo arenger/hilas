@@ -30,7 +30,7 @@ public class JsHinter implements Worker, AutoCloseable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JsHinter.class);
    private static final String RSRC_PATH = "quality/";
-   private static final long MAX_LINT_RUNTIME = 3; //seconds
+   private static final long MAX_LINT_RUNTIME = 60; //seconds
 
    private ScheduledFuture<?> scheduledFuture;
 
@@ -104,7 +104,7 @@ public class JsHinter implements Worker, AutoCloseable {
             //stopWorking();
             return;
          }
-         LOGGER.info("starting lint for js {}", js.getId());
+         LOGGER.debug("retrieving js {}", js.getId());
          String src = null;
          try {
             src = Util.getContent(js.getUrl());
@@ -124,12 +124,13 @@ public class JsHinter implements Worker, AutoCloseable {
             LOGGER.warn("md5 mismatch for js {}", js.getId());
          }
 
-         Set<String> msgSet = new HashSet<String>();
          try {
+            Set<String> msgSet = new HashSet<String>();
+            LOGGER.info("starting lint for js {}", js.getId());
             msgSet.addAll(jshint(src));
             JavaScript.linkHintMessages(js.getId(), msgSet);
             js.setHintState(JavaScript.State.PROCESSED);
-         } catch (JavaScriptException|JsInterruptedException|IOException e){
+         } catch (JavaScriptException|JsInterruptedException|IOException e) {
             LOGGER.warn("{} for js id {} - {}",
                e.getClass().getName(), js.getId(), e.getMessage());
             js.setHintState(JavaScript.State.ERROR);

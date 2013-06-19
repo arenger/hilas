@@ -39,6 +39,7 @@ public final class Hilas {
    private String urlToCheck;
    private Properties props;
    private ScheduledExecutorService runPool;
+   private JsHinter jsHinter;
 
    private Hilas(String[] args) {
       if (args.length == 0) {
@@ -93,6 +94,9 @@ public final class Hilas {
       if (runPool != null) {
          runPool.shutdownNow();
       }
+      if (jsHinter != null) {
+         jsHinter.close();
+      }
    }
 
    private void startWorker(Worker w) {
@@ -109,11 +113,7 @@ public final class Hilas {
             Integer.parseInt(props.getProperty("threadPoolSize")));
          startWorker(new SiteVisitor());
          startWorker(new SiteVisitor());
-         startWorker(new JsHinter());
-         // TODO either keep a reference to the JsHinter object(s) and
-         // close them upon app shutdown, or change JsHinter such that
-         // it creates a thread for timeout tracking for each run, so
-         // that now shutdown management is required
+         startWorker(jsHinter = new JsHinter());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }
