@@ -30,7 +30,7 @@ public class JsHinter implements Worker, AutoCloseable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JsHinter.class);
    private static final String RSRC_PATH = "quality/";
-   private static final long MAX_LINT_RUNTIME = 60; //seconds
+   private static final long MAX_LINT_RUNTIME = 300; //seconds
 
    private ScheduledFuture<?> scheduledFuture;
 
@@ -84,7 +84,7 @@ public class JsHinter implements Worker, AutoCloseable {
          Scriptable scope = cx.initStandardObjects();
          ScriptableObject.putProperty(scope, "raws" , raws);
          ScriptableObject.putProperty(scope, "input", src);
-         runJs(cx, scope, "jshint-load", RSRC_PATH + "jshint-2.1.3.js");
+         runJs(cx, scope, "jshint-load", RSRC_PATH + "jshint.js");
          runJs(cx, scope, "jshint-run" , RSRC_PATH + "run_jshint.js");
          future.cancel(true);
       } finally {
