@@ -154,7 +154,7 @@ DROP TABLE IF EXISTS `hilas`.`JsLintMsg` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`JsLintMsg` (
   `id` VARCHAR(36) NOT NULL ,
-  `message` VARCHAR(256) NOT NULL COMMENT 'the TEMPLATE of the error or warning' ,
+  `message` VARCHAR(512) NOT NULL COMMENT 'the TEMPLATE of the error or warning' ,
   `severity` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'possibly helpful for minimizing set c' ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `message_UNIQUE` (`message` ASC) )
@@ -228,7 +228,9 @@ DROP TABLE IF EXISTS `hilas`.`CssValidMsg` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`CssValidMsg` (
   `id` VARCHAR(36) NOT NULL ,
-  `message` VARCHAR(256) NOT NULL ,
+  `message` VARCHAR(512) NOT NULL ,
+  `type` VARCHAR(16) NOT NULL DEFAULT 'WARN' ,
+  `severity` TINYINT(1) NOT NULL DEFAULT 1 ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 

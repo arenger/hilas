@@ -2,6 +2,7 @@
 *.swp
 target/
 hilas.log
+.DS_Store
 
 # Package Files #
 *.jar

@@ -1,4 +1,5 @@
 #!/usr/bin/perl
+# used to generate the Messages.properties.hilas file
 
 $_ = join('',<>);
 s/\\\R//msg;

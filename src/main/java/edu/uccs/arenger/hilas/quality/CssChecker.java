@@ -5,8 +5,9 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-import org.w3c.css.css.CssValidator;
 import org.w3c.css.css.DocumentParser;
 import org.w3c.css.css.StyleSheet;
 import org.w3c.css.parser.CssError;
@@ -18,6 +19,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Worker;
+import edu.uccs.arenger.hilas.dal.CssValidMsg;
 
 public class CssChecker implements Worker {
    private static final Logger LOGGER
@@ -26,6 +28,7 @@ public class CssChecker implements Worker {
    //using a customized "language" to help identify unique error types
    private static final String LANG_FILE = "/Messages.properties.hilas";
    private static final String LANG = "hilas";
+   private Pattern rawPattern = Pattern.compile("___(.+?)___");
 
    private ScheduledFuture<?> scheduledFuture;
 
@@ -65,24 +68,46 @@ public class CssChecker implements Worker {
          LOGGER.info("scheduledFuture not set for {}", this);
       }
    }
+   
+   private String rawExtract(String msg) {
+      String ret = "";
+      if (msg != null) {
+         Matcher m = rawPattern.matcher(msg);
+         if (m.find()) {
+            ret = m.group(1);
+         }
+      }
+      return ret;
+   }
 
-   private Set<String> checkCss(String url) {
-      Set<String> msgSet = new HashSet<String>();
+   // return a Set of error TYPES -- strings similar to the "raw" jshint msgs
+   private Set<CssValidMsg> checkCss(String url) {
+      Set<CssValidMsg> msgSet = new HashSet<CssValidMsg>();
       ApplContext cx = new ApplContext(LANG);
       try {
+         cx.setWarningLevel(Integer.MAX_VALUE);
          DocumentParser parser = new DocumentParser(cx, url);
          StyleSheet style = parser.getStyleSheet();
          style.findConflicts(cx);
          Warning[] warnings = style.getWarnings().getWarnings();
          for (Warning warn : warnings) {
-            //msgSet.add(warn.getWarningMessage());
-            System.out.println(warn.getWarningMessage());
+            String raw = rawExtract(warn.getWarningMessage());
+            if (raw.length() > 0) {
+               msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN, raw));
+            } else {
+               msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN,
+                  "no message"));
+            }
          }
          CssError[] errors = style.getErrors().getErrors();
          for (CssError err : errors) {
-            System.out.printf("%s (line %d): %s\n",
-               err.getException().getClass().getName(),
-               err.getLine(), err.getException().getMessage());
+            String raw = rawExtract(err.getException().getMessage());
+            if (raw.length() > 0) {
+               msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR, raw));
+            } else {
+               msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR,
+                  err.getException().getClass().getName()));
+            }
          }
       } catch (Exception e) {
          LOGGER.warn("warning", e);
@@ -108,8 +133,8 @@ public class CssChecker implements Worker {
       }
       LOGGER.info("started CssChecker.main");
       CssChecker me = new CssChecker();
-      Set<String> msgs = me.checkCss(args[0]);
-      for (String msg : msgs) {
+      Set<CssValidMsg> msgs = me.checkCss(args[0]);
+      for (CssValidMsg msg : msgs) {
          System.out.println(msg);
       }
    }
