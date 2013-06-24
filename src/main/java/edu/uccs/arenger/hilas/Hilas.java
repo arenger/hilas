@@ -39,8 +39,7 @@ public final class Hilas {
    private File loadFile;
    private String urlToCheck;
    private Properties props;
-   private ScheduledExecutorService runnerPool;
-   private ScheduledExecutorService blockerPool;
+   private ScheduledExecutorService runPool;
    private JsHinter jsHinter;
 
    private Hilas(String[] args) {
@@ -93,20 +92,17 @@ public final class Hilas {
    private void shutdown() {
       LOGGER.info("Shutting down");
       Pool.shutdown();
-      if (runnerPool != null) {
-         runnerPool.shutdownNow();
-      }
-      if (blockerPool != null) {
-         blockerPool.shutdownNow();
+      if (runPool != null) {
+         runPool.shutdownNow();
       }
       if (jsHinter != null) {
          jsHinter.close();
       }
    }
 
-   private void startWorker(ScheduledExecutorService exec, Worker w) {
-      ScheduledFuture<?> future = exec.scheduleWithFixedDelay(
-         w, 1, w.getDelay(), w.getTimeUnit());
+   private void startWorker(Worker w) {
+      ScheduledFuture<?> future =
+         runPool.scheduleWithFixedDelay(w, 1, w.getDelay(), w.getTimeUnit());
       w.setScheduledFuture(future);
    }
 
@@ -114,15 +110,12 @@ public final class Hilas {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
-         runnerPool = Executors.newScheduledThreadPool(
-            Integer.parseInt(props.getProperty("runningPoolSize")));
-         blockerPool = Executors.newScheduledThreadPool(
-            Integer.parseInt(props.getProperty("blockingPoolSize")));
-
-         startWorker(blockerPool, new SiteVisitor());
-         startWorker(blockerPool, new SiteVisitor());
-         startWorker(runnerPool, jsHinter = new JsHinter());
-         startWorker(runnerPool, new CssChecker());
+         runPool = Executors.newScheduledThreadPool(
+            Integer.parseInt(props.getProperty("threadPoolSize")));
+         startWorker(new SiteVisitor());
+         startWorker(new SiteVisitor());
+         startWorker(jsHinter = new JsHinter());
+         startWorker(new CssChecker());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }
