@@ -6,6 +6,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.HashSet;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -21,17 +23,29 @@ public class Css extends SiteResource {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(Css.class);
 
-   private String  id;
-   private URL     url;
-   private int     size;
-   private boolean validated;
+   private String id;
+   private URL    url;
+   private int    size;
+   private State  lintState;
 
    private static final String SEL =
       "select * from css where id = ?";
    private static final String INSERT =
       "insert into css values (?,?,?,?)";
+   private static final String UPD =
+      "update css set lintState = ? where id = ?";
    private static final String LINK2SITE =
       "insert into sitecss values (?,?)";
+
+   private static final String SEL_UNLINTED =
+      "select * from css where lintState = 'UNPROCESSED'";
+   
+   private static final String LINT_CLEAR =
+      "delete from cssvalid where cssid = ?";
+   private static final String LINT_LINK =
+      "insert into cssvalid values (?, ?)";
+
+   public enum State { UNPROCESSED, PROCESSING, PROCESSED, ERROR }
 
    private Css() {}
 
@@ -39,7 +53,18 @@ public class Css extends SiteResource {
       id = Util.md5(content);
       this.url = url;
       size = content.length();
-      validated = false;
+      lintState = State.UNPROCESSED;
+   }
+
+   private Css(ResultSet rs) throws SQLException {
+      id = rs.getString("id");
+      try {
+         url = new URL(rs.getString("url"));
+      } catch (MalformedURLException e) {
+         LOGGER.warn("malformed url for id {}", id);
+      }
+      size = rs.getInt("size");
+      lintState = State.valueOf(rs.getString("lintState"));
    }
 
    public static Css get(String content) throws DalException {
@@ -49,16 +74,7 @@ public class Css extends SiteResource {
          ps.setString(1, Util.md5(content));
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
-            Css css = new Css();
-            css.id = rs.getString("id");
-            try {
-               css.url = new URL(rs.getString("url"));
-            } catch (MalformedURLException e) {
-               LOGGER.warn("malformed url for id {}", css.id);
-            }
-            css.size = rs.getInt("size");
-            css.validated = rs.getBoolean("validated");
-            ret = css;
+            ret = new Css(rs);
          }
       } catch (SQLException e) { throw new DalException(e); }
       return ret;
@@ -71,13 +87,23 @@ public class Css extends SiteResource {
          ps.setString(1, id);
          ps.setString(2, url.toString());
          ps.setInt(3, size);
-         ps.setBoolean(4, validated);
+         ps.setString(4, lintState.toString());
          ps.executeUpdate();
          LOGGER.info("inserted new css: {} - {}", id, url);
       } catch (SQLException e) {
          id = null;
          throw DalException.of(e);
       }
+   }
+
+   public void update() throws DalException {
+      Util.notNull(id, "id");
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(UPD)) {
+         ps.setString(1, lintState.toString());
+         ps.setString(2, id);
+         ps.executeUpdate();
+      } catch (SQLException e) { throw new DalException(e); }
    }
 
    public void linkToSite(String siteId) throws DalException {
@@ -94,7 +120,69 @@ public class Css extends SiteResource {
       return id;
    }
 
-   public void setValidated(boolean validated) {
-      this.validated = validated;
+   public static synchronized Css nextUnlinted()
+      throws DalException {
+      Css css = null;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_UNLINTED)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            css = new Css(rs);
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      if (css != null) {
+         css.setLintState(State.PROCESSING);
+         css.update();
+      }
+      return css;
+   }
+
+   public URL getUrl() {
+      return url;
+   }
+
+   public void setLintState(State lintState) {
+      this.lintState = lintState;
+   }
+   
+   public static void linkLintMessages(String cssId, Set<CssValidMsg> msgs)
+      throws DalException {
+      if (cssId == null) { return; }
+      if (msgs  == null) { msgs = new HashSet<CssValidMsg>(); }
+      Connection conn = null;
+      PreparedStatement delps = null;
+      PreparedStatement insps = null;
+      try {
+         conn = Pool.getConnection();
+         delps = conn.prepareStatement(LINT_CLEAR);
+         insps = conn.prepareStatement(LINT_LINK);
+         conn.setAutoCommit(false);
+         delps.setString(1, cssId);
+         delps.executeUpdate();
+
+         if (msgs.size() > 0) {
+            insps.setString(1, cssId);
+            for (CssValidMsg msg : msgs) {
+               insps.setString(2, msg.getId());
+               insps.addBatch();
+            }
+            insps.executeBatch();
+         }
+         conn.commit();
+         LOGGER.info("css {} is linked with {} message(s)",
+            cssId, msgs.size());
+      } catch (SQLException e) {
+         if (conn != null) {
+            try { conn.rollback(); } catch(SQLException ex) {
+               LOGGER.error("rollback problem", ex.getMessage());
+            }
+         }
+         throw new DalException(e);
+      } finally {
+         Util.close(delps);
+         Util.close(insps);
+         Util.setAutoCommit(conn, true);
+         Util.close(conn);
+      }
    }
 }

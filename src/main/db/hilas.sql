@@ -244,7 +244,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`Css` (
   `id` VARCHAR(32) NOT NULL COMMENT 'md5 of the css content' ,
   `url` VARCHAR(2048) NOT NULL COMMENT 'url at which this css content was first found by hilas' ,
   `size` INT NOT NULL COMMENT 'in bytes' ,
-  `validated` TINYINT(1) NOT NULL DEFAULT 0 ,
+  `lintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 

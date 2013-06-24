@@ -20,6 +20,7 @@ import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
+import edu.uccs.arenger.hilas.quality.CssChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 
 public final class Hilas {
@@ -38,7 +39,8 @@ public final class Hilas {
    private File loadFile;
    private String urlToCheck;
    private Properties props;
-   private ScheduledExecutorService runPool;
+   private ScheduledExecutorService runnerPool;
+   private ScheduledExecutorService blockerPool;
    private JsHinter jsHinter;
 
    private Hilas(String[] args) {
@@ -91,17 +93,20 @@ public final class Hilas {
    private void shutdown() {
       LOGGER.info("Shutting down");
       Pool.shutdown();
-      if (runPool != null) {
-         runPool.shutdownNow();
+      if (runnerPool != null) {
+         runnerPool.shutdownNow();
+      }
+      if (blockerPool != null) {
+         blockerPool.shutdownNow();
       }
       if (jsHinter != null) {
          jsHinter.close();
       }
    }
 
-   private void startWorker(Worker w) {
-      ScheduledFuture<?> future =
-         runPool.scheduleWithFixedDelay(w, 1, w.getDelay(), w.getTimeUnit());
+   private void startWorker(ScheduledExecutorService exec, Worker w) {
+      ScheduledFuture<?> future = exec.scheduleWithFixedDelay(
+         w, 1, w.getDelay(), w.getTimeUnit());
       w.setScheduledFuture(future);
    }
 
@@ -109,11 +114,15 @@ public final class Hilas {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
-         runPool = Executors.newScheduledThreadPool(
-            Integer.parseInt(props.getProperty("threadPoolSize")));
-         startWorker(new SiteVisitor());
-         startWorker(new SiteVisitor());
-         startWorker(jsHinter = new JsHinter());
+         runnerPool = Executors.newScheduledThreadPool(
+            Integer.parseInt(props.getProperty("runningPoolSize")));
+         blockerPool = Executors.newScheduledThreadPool(
+            Integer.parseInt(props.getProperty("blockingPoolSize")));
+
+         startWorker(blockerPool, new SiteVisitor());
+         startWorker(blockerPool, new SiteVisitor());
+         startWorker(runnerPool, jsHinter = new JsHinter());
+         startWorker(runnerPool, new CssChecker());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }

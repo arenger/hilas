@@ -19,7 +19,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Worker;
+import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.CssValidMsg;
+import edu.uccs.arenger.hilas.dal.DalException;
 
 public class CssChecker implements Worker {
    private static final Logger LOGGER
@@ -81,41 +83,74 @@ public class CssChecker implements Worker {
    }
 
    // return a Set of error TYPES -- strings similar to the "raw" jshint msgs
-   private Set<CssValidMsg> checkCss(String url) {
+   private Set<CssValidMsg> checkCss(String url) throws Exception {
+      long start = System.currentTimeMillis();
       Set<CssValidMsg> msgSet = new HashSet<CssValidMsg>();
       ApplContext cx = new ApplContext(LANG);
-      try {
-         cx.setWarningLevel(Integer.MAX_VALUE);
-         DocumentParser parser = new DocumentParser(cx, url);
-         StyleSheet style = parser.getStyleSheet();
-         style.findConflicts(cx);
-         Warning[] warnings = style.getWarnings().getWarnings();
-         for (Warning warn : warnings) {
-            String raw = rawExtract(warn.getWarningMessage());
-            if (raw.length() > 0) {
-               msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN, raw));
-            } else {
-               msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN,
-                  "no message"));
-            }
+      cx.setWarningLevel(Integer.MAX_VALUE);
+      DocumentParser parser = new DocumentParser(cx, url);
+      StyleSheet style = parser.getStyleSheet();
+      style.findConflicts(cx);
+      Warning[] warnings = style.getWarnings().getWarnings();
+      for (Warning warn : warnings) {
+         String raw = rawExtract(warn.getWarningMessage());
+         if (raw.length() > 0) {
+            msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN, raw));
+         } else {
+            msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN,
+               "no message"));
          }
-         CssError[] errors = style.getErrors().getErrors();
-         for (CssError err : errors) {
-            String raw = rawExtract(err.getException().getMessage());
-            if (raw.length() > 0) {
-               msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR, raw));
-            } else {
-               msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR,
-                  err.getException().getClass().getName()));
-            }
-         }
-      } catch (Exception e) {
-         LOGGER.warn("warning", e);
       }
+      CssError[] errors = style.getErrors().getErrors();
+      for (CssError err : errors) {
+         String raw = rawExtract(err.getException().getMessage());
+         if (raw.length() > 0) {
+            msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR, raw));
+         } else {
+            msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR,
+               err.getException().getClass().getName()));
+         }
+      }
+      LOGGER.debug( "css analysis time: {} sec", String.format("%.3f",
+         (double)(System.currentTimeMillis() - start) / 1000));
       return msgSet;
    }
 
    private void wrappedRun() {
+      try {
+         Css css = Css.nextUnlinted();
+         if (css == null) {
+            LOGGER.info("no un-linted css entries");
+            //stopWorking();
+            return;
+         }
+
+         LOGGER.info("starting lint for css {}", css.getId());
+         Set<CssValidMsg> msgSet = null;
+         try {
+            msgSet = checkCss(css.getUrl().toString());
+         } catch (Exception e) { //not sure what checkCss might throw ...
+                                 // TODO: if it does NOT throw an exception
+                                 // when a url cannot be read, then we need
+                                 // to change this code to first get the
+                                 // css src and validate it, b/c we need to
+                                 // know (and the db needs to reflect) when
+                                 // a css URL was not readable...
+            LOGGER.warn("{} for css id {} - {}",
+               e.getClass().getName(), css.getId(), e.getMessage());
+            css.setLintState(Css.State.ERROR);
+         }
+         if (msgSet != null) {
+            for (CssValidMsg msg : msgSet) {
+               msg.save();
+            }
+            Css.linkLintMessages(css.getId(), msgSet);
+            css.setLintState(Css.State.PROCESSED);
+         }
+         css.update();
+      } catch (DalException e) {
+         LOGGER.error("dal problem", e);
+      }
    }
 
    public void run() {
