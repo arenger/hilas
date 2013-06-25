@@ -1,5 +1,5 @@
 #!/usr/bin/perl
-# used to generate the Messages.properties.hilas file
+# used to generate the CssValidator.hilas.properties file
 
 $_ = join('',<>);
 s/\\\R//msg;

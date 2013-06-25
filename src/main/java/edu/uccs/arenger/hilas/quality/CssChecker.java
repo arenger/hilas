@@ -28,7 +28,7 @@ public class CssChecker implements Worker {
       = LoggerFactory.getLogger(CssChecker.class);
 
    //using a customized "language" to help identify unique error types
-   private static final String LANG_FILE = "/Messages.properties.hilas";
+   private static final String LANG_FILE = "/CssValidator.hilas.properties";
    private static final String LANG = "hilas";
    private Pattern rawPattern = Pattern.compile("___(.+?)___");
 

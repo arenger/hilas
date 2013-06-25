@@ -68,7 +68,6 @@ public final class CssValidMsg {
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             id = rs.getString("id");
-            LOGGER.debug("found cssvalidmsg message: {}", id);
          }
       } catch (SQLException e) { throw new DalException(e); }
       return id;
