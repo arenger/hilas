@@ -32,8 +32,8 @@ public class JsHinter implements Worker, AutoCloseable {
    private static final String RSRC_PATH = "quality/";
    private static final long MAX_LINT_RUNTIME = 300; //seconds
 
-   private ScheduledFuture<?> scheduledFuture;
-
+   private boolean paused = false;
+   private int   runCount = 0;
    private ScheduledExecutorService timeoutService
       = Executors.newSingleThreadScheduledExecutor();
 
@@ -43,19 +43,6 @@ public class JsHinter implements Worker, AutoCloseable {
 
    public TimeUnit getTimeUnit() {
       return TimeUnit.SECONDS;
-   }
-
-   public void setScheduledFuture(ScheduledFuture<?> scheduledFuture) {
-      this.scheduledFuture = scheduledFuture;
-   }
-
-   private void stopWorking() {
-      if (scheduledFuture != null) {
-         LOGGER.info("stopping: {}", this);
-         scheduledFuture.cancel(false);
-      } else {
-         LOGGER.info("scheduledFuture not set for {}", this);
-      }
    }
 
    private void runJs(Context cx, Scriptable scope,
@@ -97,12 +84,20 @@ public class JsHinter implements Worker, AutoCloseable {
    }
 
    private void wrappedRun() {
+      runCount++;
+      if (paused && ((runCount % 5) != 0)) { return; }
       try {
          JavaScript js = JavaScript.nextUnhinted();
          if (js == null) {
-            LOGGER.info("no un-hinted js entries");
-            //stopWorking();
+            if (!paused) {
+               LOGGER.info("{} - PAUSING (no un-hinted js entries)", this);
+               paused = true;
+            }
             return;
+         }
+         if (paused) {
+            LOGGER.info("{} - RESUMING", this);
+            paused = false;
          }
          LOGGER.debug("retrieving js {}", js.getId());
          String src = null;

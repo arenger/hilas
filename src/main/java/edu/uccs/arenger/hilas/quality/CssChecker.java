@@ -3,7 +3,6 @@ package edu.uccs.arenger.hilas.quality;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
@@ -31,8 +30,8 @@ public class CssChecker implements Worker {
    private static final String LANG_FILE = "/CssValidator.hilas.properties";
    private static final String LANG = "hilas";
    private Pattern rawPattern = Pattern.compile("___(.+?)___");
-
-   private ScheduledFuture<?> scheduledFuture;
+   private boolean paused = false;
+   private int   runCount = 0;
 
    static {
       try (InputStream in =
@@ -58,19 +57,6 @@ public class CssChecker implements Worker {
       return TimeUnit.SECONDS;
    }
 
-   public void setScheduledFuture(ScheduledFuture<?> scheduledFuture) {
-      this.scheduledFuture = scheduledFuture;
-   }
-
-   private void stopWorking() {
-      if (scheduledFuture != null) {
-         LOGGER.info("stopping: {}", this);
-         scheduledFuture.cancel(false);
-      } else {
-         LOGGER.info("scheduledFuture not set for {}", this);
-      }
-   }
-   
    private String rawExtract(String msg) {
       String ret = "";
       if (msg != null) {
@@ -117,14 +103,21 @@ public class CssChecker implements Worker {
    }
 
    private void wrappedRun() {
+      runCount++;
+      if (paused && ((runCount % 5) != 0)) { return; }
       try {
          Css css = Css.nextUnlinted();
          if (css == null) {
-            LOGGER.info("no un-linted css entries");
-            //stopWorking();
+            if (!paused) {
+               LOGGER.info("{} - PAUSING (no un-linted css entries)", this);
+               paused = true;
+            }
             return;
          }
-
+         if (paused) {
+            LOGGER.info("{} - RESUMING", this);
+            paused = false;
+         }
          LOGGER.info("starting lint for css {}", css.getId());
          Set<CssValidMsg> msgSet = null;
          try {

@@ -7,7 +7,6 @@ import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
 
 import edu.uccs.arenger.hilas.dal.Css;
@@ -33,7 +32,8 @@ public class SiteVisitor implements Worker {
    private static final int MAX_DEPTH = 5; //frames within frames
    private static final int MAX_SUBSITES = 12; //max number of subsites 
    private Set<String> subSiteIds;
-   private ScheduledFuture<?> scheduledFuture;
+   private boolean paused = false;
+   private int   runCount = 0;
 
    public long getDelay() {
       return 1;
@@ -41,19 +41,6 @@ public class SiteVisitor implements Worker {
 
    public TimeUnit getTimeUnit() {
       return TimeUnit.SECONDS;
-   }
-
-   public void setScheduledFuture(ScheduledFuture<?> scheduledFuture) {
-      this.scheduledFuture = scheduledFuture;
-   }
-
-   private void stopWorking() {
-      if (scheduledFuture != null) {
-         LOGGER.info("stopping: {}", this);
-         scheduledFuture.cancel(false);
-      } else {
-         LOGGER.info("scheduledFuture not set for {}", this);
-      }
    }
 
    private void linkRsrcEntry(
@@ -240,13 +227,21 @@ public class SiteVisitor implements Worker {
    }
 
    private void wrappedRun() {
+      runCount++;
+      if (paused && ((runCount % 5) != 0)) { return; }
       try {
          Site site = Site.nextUnvisited();
          subSiteIds = new HashSet<String>();
          if (site == null) {
-            LOGGER.info("no sites to visit");
-            stopWorking();
+            if (!paused) {
+               LOGGER.info("{} - PAUSING (no sites to visit)", this);
+               paused = true;
+            }
             return;
+         }
+         if (paused) {
+            LOGGER.info("{} - RESUMING", this);
+            paused = false;
          }
          visit(site, 0);
          if (subSiteIds.size() > 0) {

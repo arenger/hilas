@@ -103,7 +103,6 @@ public final class Hilas {
    private void startWorker(Worker w) {
       ScheduledFuture<?> future =
          runPool.scheduleWithFixedDelay(w, 1, w.getDelay(), w.getTimeUnit());
-      w.setScheduledFuture(future);
    }
 
    private void corre() {
