@@ -10,7 +10,6 @@ import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
-import java.util.concurrent.TimeUnit;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -26,6 +25,7 @@ import edu.uccs.arenger.hilas.quality.JsHinter;
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
    private static final String PROPS = "hilas.properties";
+   private static final int TPOOL_SIZE = 3;
    private static final String USAGE =
       "usage: hilas run\n" +
       "OR     hilas load FILE\n" +
@@ -39,7 +39,8 @@ public final class Hilas {
    private File loadFile;
    private String urlToCheck;
    private Properties props;
-   private ScheduledExecutorService runPool;
+   private ScheduledExecutorService multiThredExec;
+   private ScheduledExecutorService singleThreadExec;
    private JsHinter jsHinter;
 
    private Hilas(String[] args) {
@@ -92,29 +93,31 @@ public final class Hilas {
    private void shutdown() {
       LOGGER.info("Shutting down");
       Pool.shutdown();
-      if (runPool != null) {
-         runPool.shutdownNow();
+      if (multiThredExec != null) {
+         multiThredExec.shutdownNow();
+      }
+      if (singleThreadExec != null) {
+         singleThreadExec.shutdownNow();
       }
       if (jsHinter != null) {
          jsHinter.close();
       }
    }
 
-   private void startWorker(Worker w) {
-      ScheduledFuture<?> future =
-         runPool.scheduleWithFixedDelay(w, 1, w.getDelay(), w.getTimeUnit());
+   private void startWorker(ScheduledExecutorService exec, Worker w) {
+      exec.scheduleWithFixedDelay(w, 1, w.getDelay(), w.getTimeUnit());
    }
 
-   private void corre() {
+   private void run() {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
-         runPool = Executors.newScheduledThreadPool(
-            Integer.parseInt(props.getProperty("threadPoolSize")));
-         startWorker(new SiteVisitor());
-         startWorker(new SiteVisitor());
-         startWorker(jsHinter = new JsHinter());
-         startWorker(new CssChecker());
+         multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
+         singleThreadExec = Executors.newSingleThreadScheduledExecutor();
+         startWorker(multiThredExec, new SiteVisitor());
+         startWorker(multiThredExec, new SiteVisitor());
+         startWorker(singleThreadExec, jsHinter = new JsHinter());
+         startWorker(singleThreadExec, new CssChecker());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }
@@ -147,7 +150,7 @@ public final class Hilas {
       }
    }
 
-   private void run() {
+   private void dispatch() {
       LOGGER.info("Mode: {}", mode);
       Runtime.getRuntime().addShutdownHook(new Thread() {
          public void run() { shutdown(); }
@@ -156,7 +159,7 @@ public final class Hilas {
       System.out.println("Started.  See hilas.log");
       switch (mode) {
          case RUN:
-            corre();
+            run();
             break;
          case LOAD:
             load();
@@ -168,6 +171,6 @@ public final class Hilas {
    }
 
    public static void main(String[] args) {
-      new Hilas(args).run();
+      new Hilas(args).dispatch();
    }
 }
