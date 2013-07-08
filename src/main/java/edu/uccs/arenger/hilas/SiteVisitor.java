@@ -46,7 +46,7 @@ public class SiteVisitor implements Worker {
    private void linkRsrcEntry(
       String siteId, URL url, Class<? extends SiteResource> type) {
       try {
-         String content = Util.getContent(url);
+         String content = Util.getTypedContent(url).content;
          if (content.length() == 0) {
             throw new IOException("zero length rsrc at " + url);
          }
@@ -198,7 +198,7 @@ public class SiteVisitor implements Worker {
 
          String html = null;
          try {
-            html = Util.getContent(site.getUrl());
+            html = Util.getTypedContent(site.getUrl()).content;
          } catch (Exception e) {
             LOGGER.warn("problem loading url. msg: {}", e.getMessage());
             site.setState(Site.State.ERROR);

@@ -40,11 +40,6 @@ public class Css extends SiteResource {
    private static final String SEL_UNLINTED =
       "select * from css where lintState = 'UNPROCESSED'";
    
-   private static final String LINT_CLEAR =
-      "delete from cssvalid where cssid = ?";
-   private static final String LINT_LINK =
-      "insert into cssvalid values (?, ?)";
-
    public enum State { UNPROCESSED, PROCESSING, PROCESSED, ERROR }
 
    private Css() {}
@@ -145,44 +140,4 @@ public class Css extends SiteResource {
       this.lintState = lintState;
    }
    
-   public static void linkLintMessages(String cssId, Set<CssValidMsg> msgs)
-      throws DalException {
-      if (cssId == null) { return; }
-      if (msgs  == null) { msgs = new HashSet<CssValidMsg>(); }
-      Connection conn = null;
-      PreparedStatement delps = null;
-      PreparedStatement insps = null;
-      try {
-         conn = Pool.getConnection();
-         delps = conn.prepareStatement(LINT_CLEAR);
-         insps = conn.prepareStatement(LINT_LINK);
-         conn.setAutoCommit(false);
-         delps.setString(1, cssId);
-         delps.executeUpdate();
-
-         if (msgs.size() > 0) {
-            insps.setString(1, cssId);
-            for (CssValidMsg msg : msgs) {
-               insps.setString(2, msg.getId());
-               insps.addBatch();
-            }
-            insps.executeBatch();
-         }
-         conn.commit();
-         LOGGER.info("css {} is linked with {} message(s)",
-            cssId, msgs.size());
-      } catch (SQLException e) {
-         if (conn != null) {
-            try { conn.rollback(); } catch(SQLException ex) {
-               LOGGER.error("rollback problem", ex.getMessage());
-            }
-         }
-         throw new DalException(e);
-      } finally {
-         Util.close(delps);
-         Util.close(insps);
-         Util.setAutoCommit(conn, true);
-         Util.close(conn);
-      }
-   }
 }

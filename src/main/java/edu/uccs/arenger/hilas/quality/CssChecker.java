@@ -19,8 +19,8 @@ import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.Css;
-import edu.uccs.arenger.hilas.dal.CssValidMsg;
 import edu.uccs.arenger.hilas.dal.DalException;
+import edu.uccs.arenger.hilas.dal.LintMsg;
 
 public class CssChecker implements Worker {
    private static final Logger LOGGER
@@ -69,9 +69,9 @@ public class CssChecker implements Worker {
    }
 
    // return a Set of error TYPES -- strings similar to the "raw" jshint msgs
-   private Set<CssValidMsg> checkCss(String url) throws Exception {
+   private Set<LintMsg> checkCss(String url) throws Exception {
       long start = System.currentTimeMillis();
-      Set<CssValidMsg> msgSet = new HashSet<CssValidMsg>();
+      Set<LintMsg> msgSet = new HashSet<LintMsg>();
       ApplContext cx = new ApplContext(LANG);
       cx.setWarningLevel(Integer.MAX_VALUE);
       DocumentParser parser = new DocumentParser(cx, url);
@@ -81,20 +81,20 @@ public class CssChecker implements Worker {
       for (Warning warn : warnings) {
          String raw = rawExtract(warn.getWarningMessage());
          if (raw.length() > 0) {
-            msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN, raw));
+            msgSet.add(new LintMsg(LintMsg.Subject.CSS, "warn", raw));
          } else {
-            msgSet.add(new CssValidMsg(CssValidMsg.Type.WARN,
-               "no message"));
+            msgSet.add(
+               new LintMsg(LintMsg.Subject.CSS, "warn", "no message"));
          }
       }
       CssError[] errors = style.getErrors().getErrors();
       for (CssError err : errors) {
          String raw = rawExtract(err.getException().getMessage());
          if (raw.length() > 0) {
-            msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR, raw));
+            msgSet.add(new LintMsg(LintMsg.Subject.CSS, "error", raw));
          } else {
-            msgSet.add(new CssValidMsg(CssValidMsg.Type.ERROR,
-               err.getException().getClass().getName()));
+            msgSet.add(new LintMsg(LintMsg.Subject.CSS,
+               "error", err.getException().getClass().getName()));
          }
       }
       LOGGER.debug( "css analysis time: {} sec", String.format("%.3f",
@@ -119,7 +119,7 @@ public class CssChecker implements Worker {
             paused = false;
          }
          LOGGER.info("starting lint for css {}", css.getId());
-         Set<CssValidMsg> msgSet = null;
+         Set<LintMsg> msgSet = null;
          try {
             msgSet = checkCss(css.getUrl().toString());
          } catch (Exception e) { //not sure what checkCss might throw ...
@@ -134,10 +134,11 @@ public class CssChecker implements Worker {
             css.setLintState(Css.State.ERROR);
          }
          if (msgSet != null) {
-            for (CssValidMsg msg : msgSet) {
-               msg.save();
+            Set<String> msgIds = new HashSet<String>();
+            for (LintMsg msg : msgSet) {
+               msgIds.add(LintMsg.idFor(msg));
             }
-            Css.linkLintMessages(css.getId(), msgSet);
+            LintMsg.associate(LintMsg.Subject.CSS, css.getId(), msgIds);
             css.setLintState(Css.State.PROCESSED);
          }
          css.update();
@@ -150,7 +151,7 @@ public class CssChecker implements Worker {
       try {
          wrappedRun();
       } catch (Exception e) {
-         LOGGER.error("thread pool protection catch",e);
+         LOGGER.error("thread pool protection catch", e);
       }
    }
 
@@ -161,8 +162,8 @@ public class CssChecker implements Worker {
       }
       LOGGER.info("started CssChecker.main");
       CssChecker me = new CssChecker();
-      Set<CssValidMsg> msgs = me.checkCss(args[0]);
-      for (CssValidMsg msg : msgs) {
+      Set<LintMsg> msgs = me.checkCss(args[0]);
+      for (LintMsg msg : msgs) {
          System.out.println(msg);
       }
    }

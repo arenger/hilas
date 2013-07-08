@@ -16,11 +16,15 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Util;
+import edu.uccs.arenger.hilas.Util.TypedContent;
 import edu.uccs.arenger.hilas.Worker;
 
 public class HtmlChecker implements Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(CssChecker.class);
+
+   private boolean paused = false;
+   private int   runCount = 0;
 
    public long getDelay() {
       /* To be polite, since this is a public web service:
@@ -39,8 +43,6 @@ public class HtmlChecker implements Worker {
    public TimeUnit getTimeUnit() {
       return TimeUnit.SECONDS;
    }
-
-   public void run() {}
 
    private static byte[] gzip(String uncompressed) {
       if (uncompressed == null) { return null; }
@@ -74,19 +76,31 @@ public class HtmlChecker implements Worker {
       return set;
    }
 
+   private void wrappedRun() {
+      runCount++;
+      if (paused && ((runCount % 5) != 0)) { return; }
+   }
+
+   public void run() {
+      try {
+         wrappedRun();
+      } catch (Exception e) {
+         LOGGER.error("thread pool protection catch", e);
+      }
+   }
+
    // for testing -
    public static void main(String[] args) throws Exception {
       if (args.length != 1) {
          System.out.println("HtmlChecker url");
          System.exit(1);
       }
-      ByteArrayEntity entity = new ByteArrayEntity(
-         gzip(Util.getContent(new URL(args[0]))));
-      // TODO make a guess at the Content-Type, based on file extension,
-      // if present, similar to html5check.py.  default to "text/html"
+      TypedContent tc = Util.getTypedContent(new URL(args[0]));
+      ByteArrayEntity entity = new ByteArrayEntity(gzip(tc.content));
+      System.out.println("using Content-Type: " + tc.type);
       Set<String> uniq = uniqueMsgs(
          Request.Post("http://html5.validator.nu/?out=gnu")
-            .addHeader("Content-Type","text/html")
+            .addHeader("Content-Type", tc.type)
             .addHeader("Content-Encoding","gzip")
             .body(entity).execute().returnContent().toString()
       );

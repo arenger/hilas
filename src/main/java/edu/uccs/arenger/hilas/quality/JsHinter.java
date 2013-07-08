@@ -25,6 +25,7 @@ import edu.uccs.arenger.hilas.Util;
 import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
+import edu.uccs.arenger.hilas.dal.LintMsg;
 
 public class JsHinter implements Worker, AutoCloseable {
    private static final Logger LOGGER
@@ -102,7 +103,7 @@ public class JsHinter implements Worker, AutoCloseable {
          LOGGER.debug("retrieving js {}", js.getId());
          String src = null;
          try {
-            src = Util.getContent(js.getUrl());
+            src = Util.getTypedContent(js.getUrl()).content;
             if (src.length() == 0) {
                throw new IOException("zero length js");
             }
@@ -120,10 +121,14 @@ public class JsHinter implements Worker, AutoCloseable {
          }
 
          try {
-            Set<String> msgSet = new HashSet<String>();
             LOGGER.info("starting lint for js {}", js.getId());
-            msgSet.addAll(jshint(src));
-            JavaScript.linkHintMessages(js.getId(), msgSet);
+            List<String>  msgs = jshint(src);
+            Set<String> msgIds = new HashSet<String>();
+            for (String msg : msgs) {
+               msgIds.add(LintMsg.idFor(
+                  new LintMsg(LintMsg.Subject.JS, "general", msg)));
+            }
+            LintMsg.associate(LintMsg.Subject.JS, js.getId(), msgIds);
             js.setHintState(JavaScript.State.PROCESSED);
          } catch (JavaScriptException|JsInterruptedException|IOException e) {
             LOGGER.warn("{} for js id {} - {}",

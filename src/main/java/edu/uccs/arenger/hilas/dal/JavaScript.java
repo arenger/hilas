@@ -35,14 +35,6 @@ public class JavaScript extends SiteResource {
    private static final String UPD =
       "update JavaScript set lintState = ?, hintState = ? " +
       "where id = ?";
-   private static final String LINT_CLEAR =
-      "delete from jslint where jsid = ?";
-   private static final String LINT_LINK =
-      "insert into jslint values (?, ?)";
-   private static final String HINT_CLEAR =
-      "delete from jshint where jsid = ?";
-   private static final String HINT_LINK =
-      "insert into jshint values (?, ?)";
 
    public enum State { UNPROCESSED, PROCESSING, PROCESSED, ERROR }
 
@@ -132,63 +124,6 @@ public class JavaScript extends SiteResource {
          js.update();
       }
       return js;
-   }
-
-   public static void linkHintMessages(String jsId, Set<String> msgs)
-      throws DalException {
-      linkMessages(HINT_CLEAR, HINT_LINK, jsId, msgs);
-   }
-
-   public static void linkLintMessages(String jsId, Set<String> msgs)
-      throws DalException {
-      linkMessages(LINT_CLEAR, LINT_LINK, jsId, msgs);
-   }
-
-   private static void linkMessages( String clearSql, String linkSql,
-      String jsId, Set<String> msgs) throws DalException {
-      if (jsId == null) { return; }
-      //translate messages to message id's
-      Set<String> msgIdSet = new HashSet<String>();
-      if (msgs != null) {
-         for (String msg : msgs) {
-            msgIdSet.add(JsLintMsg.idForMsg(msg));
-         }
-      }
-      Connection conn = null;
-      PreparedStatement delps = null;
-      PreparedStatement insps = null;
-      try {
-         conn = Pool.getConnection();
-         delps = conn.prepareStatement(clearSql);
-         insps = conn.prepareStatement(linkSql);
-         conn.setAutoCommit(false);
-         delps.setString(1, jsId);
-         delps.executeUpdate();
-
-         if (msgIdSet.size() > 0) {
-            insps.setString(1, jsId);
-            for (String msgId : msgIdSet) {
-               insps.setString(2, msgId);
-               insps.addBatch();
-            }
-            insps.executeBatch();
-         }
-         conn.commit();
-         LOGGER.info("js {} is linked with {} message(s)",
-            jsId, msgIdSet.size());
-      } catch (SQLException e) {
-         if (conn != null) {
-            try { conn.rollback(); } catch(SQLException ex) {
-               LOGGER.error("rollback problem", ex.getMessage());
-            }
-         }
-         throw new DalException(e);
-      } finally {
-         Util.close(delps);
-         Util.close(insps);
-         Util.setAutoCommit(conn, true);
-         Util.close(conn);
-      }
    }
 
    public String getId() {

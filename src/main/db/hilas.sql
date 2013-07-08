@@ -148,11 +148,11 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `hilas`.`JsLintMsg`
+-- Table `hilas`.`lintMsg`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `hilas`.`JsLintMsg` ;
+DROP TABLE IF EXISTS `hilas`.`lintMsg` ;
 
-CREATE  TABLE IF NOT EXISTS `hilas`.`JsLintMsg` (
+CREATE  TABLE IF NOT EXISTS `hilas`.`lintMsg` (
   `id` VARCHAR(36) NOT NULL ,
   `message` VARCHAR(512) NOT NULL COMMENT 'the TEMPLATE of the error or warning' ,
   `severity` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'possibly helpful for minimizing set c' ,
@@ -174,7 +174,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsHint` (
   INDEX `fk_JsHint_JsHintMsg1_idx` (`msgId` ASC) ,
   CONSTRAINT `fk_JsHint_JsHintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`JsLintMsg` (`id` )
+    REFERENCES `hilas`.`lintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsHint_JavaScript1`
@@ -182,18 +182,6 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsHint` (
     REFERENCES `hilas`.`JavaScript` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `hilas`.`HtmlValidMsg`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `hilas`.`HtmlValidMsg` ;
-
-CREATE  TABLE IF NOT EXISTS `hilas`.`HtmlValidMsg` (
-  `id` VARCHAR(36) NOT NULL ,
-  `message` VARCHAR(256) NOT NULL COMMENT 'the TEMPLATE of the error or warning' ,
-  PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 
 
@@ -206,32 +194,18 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`HtmlValid` (
   `siteId` VARCHAR(32) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
   PRIMARY KEY (`siteId`, `msgId`) ,
-  INDEX `fk_HtmlValid_HtmlValidMsg1_idx` (`msgId` ASC) ,
   INDEX `fk_HtmlValid_Site1_idx` (`siteId` ASC) ,
-  CONSTRAINT `fk_HtmlValid_HtmlValidMsg1`
-    FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`HtmlValidMsg` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+  INDEX `fk_HtmlValid_lintMsg1_idx` (`msgId` ASC) ,
   CONSTRAINT `fk_HtmlValid_Site1`
     FOREIGN KEY (`siteId` )
     REFERENCES `hilas`.`Site` (`id` )
     ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_HtmlValid_lintMsg1`
+    FOREIGN KEY (`msgId` )
+    REFERENCES `hilas`.`lintMsg` (`id` )
+    ON DELETE NO ACTION
     ON UPDATE NO ACTION)
-ENGINE = InnoDB;
-
-
--- -----------------------------------------------------
--- Table `hilas`.`CssValidMsg`
--- -----------------------------------------------------
-DROP TABLE IF EXISTS `hilas`.`CssValidMsg` ;
-
-CREATE  TABLE IF NOT EXISTS `hilas`.`CssValidMsg` (
-  `id` VARCHAR(36) NOT NULL ,
-  `message` VARCHAR(512) NOT NULL ,
-  `type` VARCHAR(16) NOT NULL DEFAULT 'WARN' ,
-  `severity` TINYINT(1) NOT NULL DEFAULT 1 ,
-  PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
 
 
@@ -258,16 +232,16 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`CssValid` (
   `cssId` VARCHAR(32) NOT NULL ,
   `msgId` VARCHAR(36) NOT NULL ,
   PRIMARY KEY (`cssId`, `msgId`) ,
-  INDEX `fk_CssValid_CssValidMsg1_idx` (`msgId` ASC) ,
   INDEX `fk_CssValid_Css1_idx` (`cssId` ASC) ,
-  CONSTRAINT `fk_CssValid_CssValidMsg1`
-    FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`CssValidMsg` (`id` )
-    ON DELETE NO ACTION
-    ON UPDATE NO ACTION,
+  INDEX `fk_CssValid_lintMsg1_idx` (`msgId` ASC) ,
   CONSTRAINT `fk_CssValid_Css1`
     FOREIGN KEY (`cssId` )
     REFERENCES `hilas`.`Css` (`id` )
+    ON DELETE NO ACTION
+    ON UPDATE NO ACTION,
+  CONSTRAINT `fk_CssValid_lintMsg1`
+    FOREIGN KEY (`msgId` )
+    REFERENCES `hilas`.`lintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -315,7 +289,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsLint` (
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsLint_JsLintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`JsLintMsg` (`id` )
+    REFERENCES `hilas`.`lintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
