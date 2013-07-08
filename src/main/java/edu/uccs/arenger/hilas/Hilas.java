@@ -19,13 +19,13 @@ import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
-import edu.uccs.arenger.hilas.quality.CssChecker;
+import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
    private static final String PROPS = "hilas.properties";
-   private static final int TPOOL_SIZE = 3;
+   private static final int TPOOL_SIZE = 5;
    private static final String USAGE =
       "usage: hilas run\n" +
       "OR     hilas load FILE\n" +
@@ -39,8 +39,7 @@ public final class Hilas {
    private File loadFile;
    private String urlToCheck;
    private Properties props;
-   private ScheduledExecutorService multiThredExec;
-   private ScheduledExecutorService singleThreadExec;
+   private ScheduledExecutorService runPool;
    private JsHinter jsHinter;
 
    private Hilas(String[] args) {
@@ -75,29 +74,28 @@ public final class Hilas {
       }
    }
 
-   private void getProps() {
+   public static Properties getProps() {
+      Properties ret = null;
       try {
-         props = new Properties();
+         ret = new Properties();
          URL url = ClassLoader.getSystemResource(PROPS);
          if (url == null) {
             throw new RuntimeException("sys resource not found: "+PROPS);
          }
-         props.load(url.openStream());
+         ret.load(url.openStream());
       } catch (Exception e) {
          LOGGER.error("Problem loading properties file", e);
          System.err.println("Could not load properties file.  Exiting.");
          System.exit(1);
       }
+      return ret;
    }
 
    private void shutdown() {
       LOGGER.info("Shutting down");
       Pool.shutdown();
-      if (multiThredExec != null) {
-         multiThredExec.shutdownNow();
-      }
-      if (singleThreadExec != null) {
-         singleThreadExec.shutdownNow();
+      if (runPool != null) {
+         runPool.shutdownNow();
       }
       if (jsHinter != null) {
          jsHinter.close();
@@ -112,12 +110,11 @@ public final class Hilas {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
-         multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
-         singleThreadExec = Executors.newSingleThreadScheduledExecutor();
-         startWorker(multiThredExec, new SiteVisitor());
-         startWorker(multiThredExec, new SiteVisitor());
-         startWorker(singleThreadExec, jsHinter = new JsHinter());
-         startWorker(singleThreadExec, new CssChecker());
+         runPool = Executors.newScheduledThreadPool(TPOOL_SIZE);
+         startWorker(runPool, new SiteVisitor());
+         startWorker(runPool, new SiteVisitor());
+         startWorker(runPool, jsHinter = new JsHinter());
+         startWorker(runPool, new CssvManager());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }
@@ -155,7 +152,7 @@ public final class Hilas {
       Runtime.getRuntime().addShutdownHook(new Thread() {
          public void run() { shutdown(); }
       });
-      getProps();
+      props = getProps();
       System.out.println("Started.  See hilas.log");
       switch (mode) {
          case RUN:
