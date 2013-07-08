@@ -166,7 +166,7 @@ public class SiteVisitor implements Worker {
                subSiteIds.add(site.getId());
             } else {
                site = new Site(url, "hilas:sub");
-               site.setState(Site.State.VISITING);
+               site.setState(Site.VisitState.VISITING);
                try {
                   site.insert();
                   subSiteIds.add(site.getId());
@@ -184,7 +184,7 @@ public class SiteVisitor implements Worker {
          LOGGER.warn(
             "visit depth exceeded. skipping visit to: {}", site.getUrl());
          try {
-            site.setState(Site.State.ERROR);
+            site.setState(Site.VisitState.ERROR);
             site.update();
          } catch (DalException e) {
             LOGGER.error("error updating site", e);
@@ -201,7 +201,7 @@ public class SiteVisitor implements Worker {
             html = Util.getTypedContent(site.getUrl()).content;
          } catch (Exception e) {
             LOGGER.warn("problem loading url. msg: {}", e.getMessage());
-            site.setState(Site.State.ERROR);
+            site.setState(Site.VisitState.ERROR);
             site.update();
             return;
          }
@@ -219,7 +219,7 @@ public class SiteVisitor implements Worker {
             site.setSize(0);
          }
 
-         site.setState(Site.State.VISITED);
+         site.setState(Site.VisitState.VISITED);
          site.update();
       } catch (DalException e) {
          LOGGER.error("problem while visiting {}", site.getUrl());

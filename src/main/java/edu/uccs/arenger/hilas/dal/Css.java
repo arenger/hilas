@@ -6,27 +6,26 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Util;
+import edu.uccs.arenger.hilas.quality.LintState;
 
 /* This class is a whole lot like the JavaScript class, and the DB
  * schema could be better normalized with a "Resource" table that holds
  * both js and css resources with a type... but after designing down that
  * road for a bit, it seemed that it could affect the speed of analysis,
  * which is the whole point of hilas... so, my appologies to Dr. Codd. */
-public class Css extends SiteResource {
+public final class Css extends SiteResource {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(Css.class);
 
-   private String id;
-   private URL    url;
-   private int    size;
-   private State  lintState;
+   private String    id;
+   private URL       url;
+   private int       size;
+   private LintState lintState;
 
    private static final String SEL =
       "select * from css where id = ?";
@@ -40,15 +39,13 @@ public class Css extends SiteResource {
    private static final String SEL_UNLINTED =
       "select * from css where lintState = 'UNPROCESSED'";
    
-   public enum State { UNPROCESSED, PROCESSING, PROCESSED, ERROR }
-
    private Css() {}
 
    public Css(URL url, String content) {
       id = Util.md5(content);
       this.url = url;
       size = content.length();
-      lintState = State.UNPROCESSED;
+      lintState = LintState.UNPROCESSED;
    }
 
    private Css(ResultSet rs) throws SQLException {
@@ -59,7 +56,7 @@ public class Css extends SiteResource {
          LOGGER.warn("malformed url for id {}", id);
       }
       size = rs.getInt("size");
-      lintState = State.valueOf(rs.getString("lintState"));
+      lintState = LintState.valueOf(rs.getString("lintState"));
    }
 
    public static Css get(String content) throws DalException {
@@ -126,7 +123,7 @@ public class Css extends SiteResource {
          }
       } catch (SQLException e) { throw new DalException(e); }
       if (css != null) {
-         css.setLintState(State.PROCESSING);
+         css.setLintState(LintState.PROCESSING);
          css.update();
       }
       return css;
@@ -136,7 +133,7 @@ public class Css extends SiteResource {
       return url;
    }
 
-   public void setLintState(State lintState) {
+   public void setLintState(LintState lintState) {
       this.lintState = lintState;
    }
    

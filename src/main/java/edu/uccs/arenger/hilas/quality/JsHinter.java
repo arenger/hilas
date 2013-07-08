@@ -109,7 +109,7 @@ public class JsHinter implements Worker, AutoCloseable {
             }
          } catch (Exception e) {
             LOGGER.error("problem loading js src. msg: {}", e.getMessage());
-            js.setHintState(JavaScript.State.ERROR);
+            js.setHintState(LintState.ERROR);
             js.update();
             return;
          }
@@ -129,11 +129,11 @@ public class JsHinter implements Worker, AutoCloseable {
                   new LintMsg(LintMsg.Subject.JS, "general", msg)));
             }
             LintMsg.associate(LintMsg.Subject.JS, js.getId(), msgIds);
-            js.setHintState(JavaScript.State.PROCESSED);
+            js.setHintState(LintState.PROCESSED);
          } catch (JavaScriptException|JsInterruptedException|IOException e) {
             LOGGER.warn("{} for js id {} - {}",
                e.getClass().getName(), js.getId(), e.getMessage());
-            js.setHintState(JavaScript.State.ERROR);
+            js.setHintState(LintState.ERROR);
          }
          js.update();
       } catch (DalException e) {

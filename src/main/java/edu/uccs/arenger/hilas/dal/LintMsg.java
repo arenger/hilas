@@ -38,30 +38,30 @@ public final class LintMsg {
    private Subject subject;
    private String type;
    private String message;
-   private String fullMessage;
+   private String formattedMsg;
 
    public LintMsg(Subject subject, String type, String message) {
       this.subject = subject;
       this.type = type;
       this.message = message;
-      fullMessage = String.format("%s: %s: %s",
+      formattedMsg = String.format("%s: %s: %s",
          subject.toString().toLowerCase(), type.toLowerCase(), message);
    }
 
    public String toString() {
-      return fullMessage;
+      return formattedMsg;
    }
 
    public boolean equals(Object o) {
       if ((o == null) || !(o instanceof LintMsg)) {
          return false;
       } else {
-         return ((LintMsg)o).fullMessage.equals(fullMessage);
+         return ((LintMsg)o).formattedMsg.equals(formattedMsg);
       }
    }
 
    public int hashCode() {
-      return fullMessage.hashCode();
+      return formattedMsg.hashCode();
    }
 
    public static String idFor(LintMsg message) throws DalException {

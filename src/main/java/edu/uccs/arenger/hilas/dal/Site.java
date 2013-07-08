@@ -22,22 +22,22 @@ public class Site {
    private String  domainId;
    private URL     url;
    private String  source;
-   private State   state;
+   private VisitState   visitState;
    private Long    visitTime;
    private Integer size;
 
-   public enum State {
+   public enum VisitState {
       NEW, VISITING, VISITED, VALIDATING, VALID, ERROR
    }
 
    private static final String SEL = 
       "select * from site where id = ?";
    private static final String SEL_UNVISITED = 
-      "select * from site where state = 'NEW' limit 1";
+      "select * from site where visitState = 'NEW' limit 1";
    private static final String INS =
       "insert into site values (?,?,?,?,?,?,?)";
    private static final String UPD = 
-      "update site set state = ?, visitTime = ?, size = ? where id = ?";
+      "update site set visitState = ?, visitTime = ?, size = ? where id = ?";
    private static final String DEL_SITE_FRAME = 
       "delete from siteframe where topsite = ?";
    private static final String INS_SITE_FRAME = 
@@ -47,7 +47,7 @@ public class Site {
       id = Util.md5(url.toString());
       this.url = url;
       this.source = source;
-      state = State.NEW;
+      visitState = VisitState.NEW;
    }
 
    private Site(ResultSet rs) throws SQLException {
@@ -59,7 +59,7 @@ public class Site {
          LOGGER.warn("malformed url for id {}", id);
       }
       source = rs.getString("source");
-      state = State.valueOf(rs.getString("state"));
+      visitState = VisitState.valueOf(rs.getString("visitState"));
       Timestamp ts = rs.getTimestamp("visitTime");
       if (ts != null) { visitTime = ts.getTime(); }
       size = rs.getInt("size"); if (rs.wasNull()) { size = null; }
@@ -84,7 +84,7 @@ public class Site {
          ps.setString(2, domainId);
          ps.setString(3, url.toString());
          ps.setString(4, source);
-         ps.setString(5, state.toString());
+         ps.setString(5, visitState.toString());
          if (visitTime != null) {
             ps.setTimestamp(6, new Timestamp(visitTime));
          } else {
@@ -105,7 +105,7 @@ public class Site {
    public void update() throws DalException {
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(UPD)) {
-         ps.setString(1, state.toString());
+         ps.setString(1, visitState.toString());
          if (visitTime != null) {
             ps.setTimestamp(2, new Timestamp(visitTime));
          } else {
@@ -176,7 +176,7 @@ public class Site {
          }
       } catch (SQLException e) { throw new DalException(e); }
       if (site != null) {
-         site.setState(State.VISITING);
+         site.setState(VisitState.VISITING);
          site.update();
       }
       return site;
@@ -203,8 +203,8 @@ public class Site {
       return url;
    }
 
-   public void setState(State state) {
-      this.state = state;
+   public void setState(VisitState visitState) {
+      this.visitState = visitState;
    }
 
    public void setVisitTime(Long visitTime) {

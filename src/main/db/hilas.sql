@@ -84,9 +84,10 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`Site` (
   `domainId` VARCHAR(36) NOT NULL ,
   `url` VARCHAR(2048) NOT NULL COMMENT '2048 is too long for a UK, but this is kept unique by id generation' ,
   `source` VARCHAR(32) NOT NULL COMMENT 'eg alexa, blacklist, crawler, subsite, etc' ,
-  `state` VARCHAR(16) NOT NULL DEFAULT 'NEW' ,
+  `visitState` VARCHAR(16) NOT NULL DEFAULT 'NEW' ,
   `visitTime` TIMESTAMP NULL COMMENT 'if/when this site was visited' ,
   `size` INT NULL COMMENT 'size in bytes of the initial html loaded.  no js-generated html will be included' ,
+  `lintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' COMMENT 'state of the html validation for this page' ,
   PRIMARY KEY (`id`) ,
   INDEX `fk_Site_Domain1_idx` (`domainId` ASC) ,
   CONSTRAINT `fk_Site_Domain1`

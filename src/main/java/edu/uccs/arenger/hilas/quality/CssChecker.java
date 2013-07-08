@@ -131,7 +131,7 @@ public class CssChecker implements Worker {
                                  // a css URL was not readable...
             LOGGER.warn("{} for css id {} - {}",
                e.getClass().getName(), css.getId(), e.getMessage());
-            css.setLintState(Css.State.ERROR);
+            css.setLintState(LintState.ERROR);
          }
          if (msgSet != null) {
             Set<String> msgIds = new HashSet<String>();
@@ -139,7 +139,7 @@ public class CssChecker implements Worker {
                msgIds.add(LintMsg.idFor(msg));
             }
             LintMsg.associate(LintMsg.Subject.CSS, css.getId(), msgIds);
-            css.setLintState(Css.State.PROCESSED);
+            css.setLintState(LintState.PROCESSED);
          }
          css.update();
       } catch (DalException e) {

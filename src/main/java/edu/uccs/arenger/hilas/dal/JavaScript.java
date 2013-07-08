@@ -6,23 +6,22 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
-import java.util.HashSet;
-import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Util;
+import edu.uccs.arenger.hilas.quality.LintState;
 
-public class JavaScript extends SiteResource {
+public final class JavaScript extends SiteResource {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JavaScript.class);
 
-   private String id;
-   private URL    url;
-   private int    size;
-   private State  lintState;
-   private State  hintState;
+   private String    id;
+   private URL       url;
+   private int       size;
+   private LintState lintState;
+   private LintState hintState;
 
    private static final String SEL =
       "select * from javascript where id = ?";
@@ -36,14 +35,12 @@ public class JavaScript extends SiteResource {
       "update JavaScript set lintState = ?, hintState = ? " +
       "where id = ?";
 
-   public enum State { UNPROCESSED, PROCESSING, PROCESSED, ERROR }
-
    public JavaScript(URL url, String content) {
       id = Util.md5(content);
       this.url = url;
       size = content.length();
-      lintState = State.UNPROCESSED;
-      hintState = State.UNPROCESSED;
+      lintState = LintState.UNPROCESSED;
+      hintState = LintState.UNPROCESSED;
    }
 
    private JavaScript(ResultSet rs) throws SQLException {
@@ -54,8 +51,8 @@ public class JavaScript extends SiteResource {
          LOGGER.warn("malformed url for id {}", id);
       }
       size = rs.getInt("size");
-      lintState = State.valueOf(rs.getString("lintState"));
-      hintState = State.valueOf(rs.getString("hintState"));
+      lintState = LintState.valueOf(rs.getString("lintState"));
+      hintState = LintState.valueOf(rs.getString("hintState"));
    }
 
    public static JavaScript get(String content) throws DalException {
@@ -120,7 +117,7 @@ public class JavaScript extends SiteResource {
          }
       } catch (SQLException e) { throw new DalException(e); }
       if (js != null) {
-         js.setHintState(State.PROCESSING);
+         js.setHintState(LintState.PROCESSING);
          js.update();
       }
       return js;
@@ -134,11 +131,11 @@ public class JavaScript extends SiteResource {
       return url;
    }
 
-   public void setLintState(State lintState) {
+   public void setLintState(LintState lintState) {
       this.lintState = lintState;
    }
 
-   public void setHintState(State hintState) {
+   public void setHintState(LintState hintState) {
       this.hintState = hintState;
    }
 
