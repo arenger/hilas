@@ -19,8 +19,7 @@ public class CssvManager implements Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(CssvManager.class);
 
-   //private static final long MAX_LINT_RUNTIME = 180; //seconds
-   private static final long MAX_LINT_RUNTIME = 2; //seconds
+   private static final long MAX_LINT_RUNTIME = 180; //seconds
 
    private boolean paused = false;
    private int   runCount = 0;
