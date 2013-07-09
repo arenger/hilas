@@ -19,7 +19,7 @@ public class CssvManager implements Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(CssvManager.class);
 
-   private static final long MAX_LINT_RUNTIME = 180; //seconds
+   private static final long MAX_LINT_RUNTIME = 300; //seconds
 
    private boolean paused = false;
    private int   runCount = 0;
@@ -61,7 +61,7 @@ public class CssvManager implements Worker {
                e.getClass().getName());
          }
          if (!future.isDone()) {
-            LOGGER.warn("cancelling submission to validationService");
+            LOGGER.warn("attemping to cancel CssChecker");
             future.cancel(true);
          }
       } catch (DalException e) {

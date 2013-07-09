@@ -125,6 +125,8 @@ public class JsHinter implements Worker, AutoCloseable {
             List<String>  msgs = jshint(src);
             Set<String> msgIds = new HashSet<String>();
             for (String msg : msgs) {
+               //just for consistent (logback-like) parameterization format -
+               msg = msg.replaceAll("\\{\\w\\}","{}");
                msgIds.add(LintMsg.idFor(
                   new LintMsg(LintMsg.Subject.JS, "general", msg)));
             }

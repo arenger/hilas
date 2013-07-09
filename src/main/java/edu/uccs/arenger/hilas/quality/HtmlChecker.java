@@ -68,8 +68,8 @@ public class HtmlChecker implements Worker {
          Matcher m = linePat.matcher(line);
          if (m.find()) {
             String msg = m.group(3).trim();
-            msg = msg.replaceAll("\u201c.*?\u201d","?");
-            msg = msg.replaceAll("\\d","?");
+            msg = msg.replaceAll("\u201c.*?\u201d","{}");
+            msg = msg.replaceAll("\\d","{}");
             set.add(String.format("%s: %s", m.group(1), msg));
          }
       }
