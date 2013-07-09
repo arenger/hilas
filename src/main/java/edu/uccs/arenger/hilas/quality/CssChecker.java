@@ -3,7 +3,6 @@ package edu.uccs.arenger.hilas.quality;
 import java.io.InputStream;
 import java.util.HashSet;
 import java.util.Set;
-import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -17,12 +16,11 @@ import org.w3c.css.util.Warning;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.LintMsg;
 
-public class CssChecker implements Worker {
+public class CssChecker implements Runnable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(CssChecker.class);
 
@@ -30,8 +28,8 @@ public class CssChecker implements Worker {
    private static final String LANG_FILE = "/CssValidator.hilas.properties";
    private static final String LANG = "hilas";
    private Pattern rawPattern = Pattern.compile("___(.+?)___");
-   private boolean paused = false;
-   private int   runCount = 0;
+
+   private Css css;
 
    static {
       try (InputStream in =
@@ -49,12 +47,8 @@ public class CssChecker implements Worker {
       }
    }
 
-   public long getDelay() {
-      return 1;
-   }
-
-   public TimeUnit getTimeUnit() {
-      return TimeUnit.SECONDS;
+   public CssChecker(Css css) {
+      this.css = css;
    }
 
    private String rawExtract(String msg) {
@@ -102,23 +96,14 @@ public class CssChecker implements Worker {
       return msgSet;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
-      try {
-         Css css = Css.nextUnlinted();
-         if (css == null) {
-            if (!paused) {
-               LOGGER.info("{} - PAUSING (no un-linted css entries)", this);
-               paused = true;
-            }
-            return;
-         }
-         if (paused) {
-            LOGGER.info("{} - RESUMING", this);
-            paused = false;
-         }
+   public void wrappedRun() {
+      if (css == null) {
+         LOGGER.error("null css");
+         return;
+      } else {
          LOGGER.info("starting lint for css {}", css.getId());
+      }
+      try {
          Set<LintMsg> msgSet = null;
          try {
             msgSet = checkCss(css.getUrl().toString());
@@ -151,7 +136,7 @@ public class CssChecker implements Worker {
       try {
          wrappedRun();
       } catch (Exception e) {
-         LOGGER.error("thread pool protection catch", e);
+         LOGGER.error("thread pool protection catch",e);
       }
    }
 
@@ -161,7 +146,7 @@ public class CssChecker implements Worker {
          System.exit(1);
       }
       LOGGER.info("started CssChecker.main");
-      CssChecker me = new CssChecker();
+      CssChecker me = new CssChecker(null);
       Set<LintMsg> msgs = me.checkCss(args[0]);
       for (LintMsg msg : msgs) {
          System.out.println(msg);

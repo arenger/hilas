@@ -18,7 +18,7 @@ import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
-import edu.uccs.arenger.hilas.quality.CssChecker;
+import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 
 public final class Hilas {
@@ -38,7 +38,8 @@ public final class Hilas {
    private File loadFile;
    private String urlToCheck;
    private Properties props;
-   private ScheduledExecutorService runPool;
+   private ScheduledExecutorService multiThredExec;
+   private ScheduledExecutorService singleThreadExec;
    private JsHinter jsHinter;
 
    private Hilas(String[] args) {
@@ -93,8 +94,11 @@ public final class Hilas {
    private void shutdown() {
       LOGGER.info("Shutting down");
       Pool.shutdown();
-      if (runPool != null) {
-         runPool.shutdownNow();
+      if (multiThredExec != null) {
+         multiThredExec.shutdownNow();
+      }
+      if (singleThreadExec != null) {
+         singleThreadExec.shutdownNow();
       }
       if (jsHinter != null) {
          jsHinter.close();
@@ -109,11 +113,14 @@ public final class Hilas {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
-         runPool = Executors.newScheduledThreadPool(TPOOL_SIZE);
-         startWorker(runPool, new SiteVisitor());
-         startWorker(runPool, new SiteVisitor());
-         startWorker(runPool, jsHinter = new JsHinter());
-         startWorker(runPool, new CssChecker());
+         multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
+         singleThreadExec = Executors.newSingleThreadScheduledExecutor();
+
+         startWorker(multiThredExec, new SiteVisitor());
+         startWorker(multiThredExec, new SiteVisitor());
+         multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
+         startWorker(singleThreadExec, jsHinter = new JsHinter());
+         startWorker(singleThreadExec, new CssvManager());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }

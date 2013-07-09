@@ -44,7 +44,7 @@ public class HtmlChecker implements Worker {
       return TimeUnit.SECONDS;
    }
 
-   private static byte[] gzip(String uncompressed) {
+   private byte[] gzip(String uncompressed) {
       if (uncompressed == null) { return null; }
       try (ByteArrayOutputStream baos = new ByteArrayOutputStream();
            GZIPOutputStream      gzos = new GZIPOutputStream(baos)) {
@@ -59,7 +59,7 @@ public class HtmlChecker implements Worker {
 
    // TODO Set<dal.HtmlMsg> or something, whereby we set the "score"
    // according to the message type
-   private static Set<String> uniqueMsgs(String gnuResponse) {
+   private Set<String> uniqueMsgs(String gnuResponse) {
       Set<String> set = new HashSet<String>();
       Pattern linePat = Pattern.compile(
          ": ((info|error|non-document-error)[^:]*):(.*)");
@@ -95,10 +95,11 @@ public class HtmlChecker implements Worker {
          System.out.println("HtmlChecker url");
          System.exit(1);
       }
+      HtmlChecker me = new HtmlChecker();
       TypedContent tc = Util.getTypedContent(new URL(args[0]));
-      ByteArrayEntity entity = new ByteArrayEntity(gzip(tc.content));
+      ByteArrayEntity entity = new ByteArrayEntity(me.gzip(tc.content));
       System.out.println("using Content-Type: " + tc.type);
-      Set<String> uniq = uniqueMsgs(
+      Set<String> uniq = me.uniqueMsgs(
          Request.Post("http://html5.validator.nu/?out=gnu")
             .addHeader("Content-Type", tc.type)
             .addHeader("Content-Encoding","gzip")
