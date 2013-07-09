@@ -82,7 +82,7 @@ public final class LintMsg {
          ps.setString(2, message.toString());
          ps.executeUpdate();
          cache.put(message.toString(),id);
-         LOGGER.info("new jslint message: {}", message);
+         LOGGER.info("new lint message: {}", message);
       } catch (SQLException e) { throw new DalException(e); }
       return id;
    }

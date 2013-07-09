@@ -9,7 +9,6 @@ import java.net.URL;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
-import java.util.concurrent.ScheduledFuture;
 
 import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
@@ -19,7 +18,7 @@ import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
-import edu.uccs.arenger.hilas.quality.CssvManager;
+import edu.uccs.arenger.hilas.quality.CssChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 
 public final class Hilas {
@@ -114,7 +113,7 @@ public final class Hilas {
          startWorker(runPool, new SiteVisitor());
          startWorker(runPool, new SiteVisitor());
          startWorker(runPool, jsHinter = new JsHinter());
-         startWorker(runPool, new CssvManager());
+         startWorker(runPool, new CssChecker());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }

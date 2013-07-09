@@ -14,17 +14,19 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.Util;
+import edu.uccs.arenger.hilas.quality.LintState;
 
 public class Site {
    private static final Logger LOGGER = LoggerFactory.getLogger(Site.class);
 
-   private String  id;
-   private String  domainId;
-   private URL     url;
-   private String  source;
-   private VisitState   visitState;
-   private Long    visitTime;
-   private Integer size;
+   private String     id;
+   private String     domainId;
+   private URL        url;
+   private String     source;
+   private VisitState visitState;
+   private Long       visitTime;
+   private Integer    size;
+   private LintState  lintState;
 
    public enum VisitState {
       NEW, VISITING, VISITED, VALIDATING, VALID, ERROR
@@ -35,7 +37,7 @@ public class Site {
    private static final String SEL_UNVISITED = 
       "select * from site where visitState = 'NEW' limit 1";
    private static final String INS =
-      "insert into site values (?,?,?,?,?,?,?)";
+      "insert into site values (?,?,?,?,?,?,?,?)";
    private static final String UPD = 
       "update site set visitState = ?, visitTime = ?, size = ? where id = ?";
    private static final String DEL_SITE_FRAME = 
@@ -48,6 +50,7 @@ public class Site {
       this.url = url;
       this.source = source;
       visitState = VisitState.NEW;
+      lintState = LintState.UNPROCESSED;
    }
 
    private Site(ResultSet rs) throws SQLException {
@@ -63,6 +66,7 @@ public class Site {
       Timestamp ts = rs.getTimestamp("visitTime");
       if (ts != null) { visitTime = ts.getTime(); }
       size = rs.getInt("size"); if (rs.wasNull()) { size = null; }
+      lintState = LintState.valueOf(rs.getString("lintState"));
    }
 
    public void insert() throws DalException {
@@ -95,6 +99,7 @@ public class Site {
          } else {
             ps.setNull(7, Types.INTEGER);
          }
+         ps.setString(8, lintState.toString());
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
