@@ -32,16 +32,16 @@ public class HtmlChecker implements Worker {
 
    public long getDelay() {
       /* To be polite, since this is a public web service:
-       * - Put a fixed delay between requests
+       * - Put a reasonable, fixed delay between requests
        * - Call the WS with the HTML in the entity body, so the WS
        *   does not need to fetch the HTML
        * - GZip the entity body, so that less bandwith is used
        * - Since GZipping is more expensive than GZipping (I think),
        *   allow the requests to come across uncompressed.
-       * - It happens that I need "out=gnu", which looks to the most
-       *   concise uncompressed output format.
+       * - It happens that I need "out=gnu", which also looks to be
+       *   the most concise uncompressed output format.
        */
-      return 5;
+      return 7;
    }
 
    public TimeUnit getTimeUnit() {
@@ -113,13 +113,19 @@ public class HtmlChecker implements Worker {
          try {
             ByteArrayEntity entity = new ByteArrayEntity(gzip(tc.content));
             LOGGER.debug("using Content-Type: {}", tc.type);
+            long start = System.currentTimeMillis();
             Set<LintMsg> uniq = uniqueMsgs(
                Request.Post("http://html5.validator.nu/?out=gnu")
                   .addHeader("Content-Type", tc.type)
                   .addHeader("Content-Encoding","gzip")
                   .body(entity).execute().returnContent().toString()
             );
-            //save results -
+            //this time will include network latency, but it's something -
+            LOGGER.debug( "appx html analysis time: {} sec, size: {}",
+               String.format("%.3f", (double)(System.currentTimeMillis() -
+               start) / 1000), tc.content.length());
+
+            //save results to db -
             Set<String> msgIds = new HashSet<String>();
             for (LintMsg msg : uniq) {
                msgIds.add(LintMsg.idFor(msg));
