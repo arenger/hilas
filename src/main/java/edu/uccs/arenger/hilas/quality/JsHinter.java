@@ -1,7 +1,5 @@
 package edu.uccs.arenger.hilas.quality;
 
-import java.io.BufferedReader;
-import java.io.FileReader;
 import java.io.IOException;
 import java.io.InputStreamReader;
 import java.net.URL;
@@ -26,6 +24,7 @@ import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.JavaScript;
 import edu.uccs.arenger.hilas.dal.LintMsg;
+import edu.uccs.arenger.hilas.dal.LintMsg.Subject;
 
 public class JsHinter implements Worker, AutoCloseable {
    private static final Logger LOGGER
@@ -58,7 +57,8 @@ public class JsHinter implements Worker, AutoCloseable {
       }
    }
 
-   private List<String> jshint(String src) throws IOException {
+   private Set<LintMsg> jshint(String src) throws IOException {
+      Set<LintMsg> ret  = new HashSet<LintMsg>();
       List<String> raws = new ArrayList<String>();
       long start = System.currentTimeMillis();
       try {
@@ -81,7 +81,12 @@ public class JsHinter implements Worker, AutoCloseable {
       LOGGER.debug( "jshint analysis time: {} sec, js size: {}",
          String.format("%.3f", (double)(System.currentTimeMillis() -
          start) / 1000), src.length());
-      return raws;
+      for (String msg : raws) {
+         //just for consistent (logback-like) parameterization format -
+         msg = msg.replaceAll("\\{\\w\\}","{}");
+         ret.add(new LintMsg(Subject.JS, "general", msg));
+      }
+      return ret;
    }
 
    private void wrappedRun() {
@@ -122,15 +127,12 @@ public class JsHinter implements Worker, AutoCloseable {
 
          try {
             LOGGER.info("starting lint for js {}", js.getId());
-            List<String>  msgs = jshint(src);
+            Set<LintMsg>  msgs = jshint(src);
             Set<String> msgIds = new HashSet<String>();
-            for (String msg : msgs) {
-               //just for consistent (logback-like) parameterization format -
-               msg = msg.replaceAll("\\{\\w\\}","{}");
-               msgIds.add(LintMsg.idFor(
-                  new LintMsg(LintMsg.Subject.JS, "general", msg)));
+            for (LintMsg msg : msgs) {
+               msgIds.add(LintMsg.idFor(msg));
             }
-            LintMsg.associate(LintMsg.Subject.JS, js.getId(), msgIds);
+            LintMsg.associate(Subject.JS, js.getId(), msgIds);
             js.setHintState(LintState.PROCESSED);
          } catch (JavaScriptException|JsInterruptedException|IOException e) {
             LOGGER.warn("{} for js id {} - {}",
@@ -157,20 +159,13 @@ public class JsHinter implements Worker, AutoCloseable {
 
    public static void main(String[] args) throws Exception {
       if (args.length != 1) {
-         System.out.println("js file required as 1st and only arg");
+         System.out.println("js url required as 1st and only arg");
          System.exit(1);
       }
-      StringBuilder sb = new StringBuilder();
-      try (BufferedReader in = new BufferedReader(new FileReader(args[0]))) {
-         String line;
-         while ((line = in.readLine()) != null) {
-            sb.append(line);
-            sb.append("\n");
-         }
-      }
+      String src = Util.getTypedContent(new URL(args[0])).content;
       try (JsHinter me = new JsHinter()) {
-         List<String> msgs = me.jshint(sb.toString());
-         for (String msg : msgs) {
+         Set<LintMsg> msgs = me.jshint(src);
+         for (LintMsg msg : msgs) {
             System.out.println(msg);
          }
       }

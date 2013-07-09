@@ -19,6 +19,7 @@ import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.UkViolation;
 import edu.uccs.arenger.hilas.quality.CssvManager;
+import edu.uccs.arenger.hilas.quality.HtmlChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 
 public final class Hilas {
@@ -118,6 +119,7 @@ public final class Hilas {
 
          startWorker(multiThredExec, new SiteVisitor());
          startWorker(multiThredExec, new SiteVisitor());
+         startWorker(multiThredExec, new HtmlChecker());
          multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
          startWorker(singleThreadExec, jsHinter = new JsHinter());
          startWorker(singleThreadExec, new CssvManager());

@@ -36,10 +36,13 @@ public class Site {
       "select * from site where id = ?";
    private static final String SEL_UNVISITED = 
       "select * from site where visitState = 'NEW' limit 1";
+   private static final String SEL_UNLINTED = 
+      "select * from site where lintState = 'UNPROCESSED' limit 1";
    private static final String INS =
       "insert into site values (?,?,?,?,?,?,?,?)";
    private static final String UPD = 
-      "update site set visitState = ?, visitTime = ?, size = ? where id = ?";
+      "update site set visitState = ?, visitTime = ?, " +
+      "size = ?, lintState = ? where id = ?";
    private static final String DEL_SITE_FRAME = 
       "delete from siteframe where topsite = ?";
    private static final String INS_SITE_FRAME = 
@@ -121,7 +124,8 @@ public class Site {
          } else {
             ps.setNull(3, Types.INTEGER);
          }
-         ps.setString(4, id);
+         ps.setString(4, lintState.toString());
+         ps.setString(5, id);
          ps.executeUpdate();
       } catch (SQLException e) { throw new DalException(e); }
    }
@@ -187,6 +191,23 @@ public class Site {
       return site;
    }
 
+   public static synchronized Site nextUnlinted()
+      throws DalException {
+      Site site = null;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_UNLINTED)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            site = new Site(rs);
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      if (site != null) {
+         site.setLintState(LintState.PROCESSING);
+         site.update();
+      }
+      return site;
+   }
+
    public static Site forUrl(URL url) throws DalException {
       Site site = null;
       try (Connection conn = Pool.getConnection();
@@ -218,6 +239,10 @@ public class Site {
 
    public void setSize(Integer size) {
       this.size = size;
+   }
+
+   public void setLintState(LintState lintState) {
+      this.lintState = lintState;
    }
 
 }
