@@ -21,6 +21,7 @@ import edu.uccs.arenger.hilas.dal.UkViolation;
 import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.HtmlChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
+import edu.uccs.arenger.hilas.security.GoogleSb;
 
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
@@ -114,13 +115,14 @@ public final class Hilas {
       try {
          Pool.init(props);
          Util.trustAllSslCerts();
-         multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
+         multiThredExec   = Executors.newScheduledThreadPool(TPOOL_SIZE);
          singleThreadExec = Executors.newSingleThreadScheduledExecutor();
 
          startWorker(multiThredExec, new SiteVisitor());
          startWorker(multiThredExec, new SiteVisitor());
-         startWorker(multiThredExec, new HtmlChecker());
-         multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
+         //startWorker(multiThredExec, new HtmlChecker());
+         startWorker(multiThredExec, new GoogleSb());
+
          startWorker(singleThreadExec, jsHinter = new JsHinter());
          startWorker(singleThreadExec, new CssvManager());
       } catch (DalException e) {

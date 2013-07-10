@@ -54,7 +54,7 @@ public class Site {
     * submitted to the specified service.  only... some services prefer
     * urls, so, get a valid (visited) url for each domain. */
    private static final String SEL_URL_SBS =
-      "select s.url from ( " +
+      "select s.* from ( " +
          "select d.id from domain d " +
          "left join safebrowseresult r on d.id = r.domainid " +
          "group by d.id having (sum(ifnull(r.sbsid,0)) & ?) = 0 " +
@@ -238,6 +238,10 @@ public class Site {
       return id;
    }
 
+   public String getDomainId() {
+      return domainId;
+   }
+
    public URL getUrl() {
       return url;
    }
@@ -259,9 +263,9 @@ public class Site {
    }
 
    // see comment for SEL_URL_SBS -
-   public static List<String> getUnvettedUrls(Sbs sbs, int limit)
+   public static List<Site> getUnvetted(Sbs sbs, int limit)
       throws DalException {
-      List<String> ret = new ArrayList<String>();
+      List<Site> ret = new ArrayList<Site>();
       if (limit == 0) { return ret; }
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(SEL_URL_SBS)) {
@@ -269,7 +273,7 @@ public class Site {
          ps.setInt(2, limit);
          ResultSet rs = ps.executeQuery();
          while (rs.next()) {
-            ret.add(rs.getString(0));
+            ret.add(new Site(rs));
          }
       } catch (SQLException e) { throw new DalException(e); }
       return ret;
