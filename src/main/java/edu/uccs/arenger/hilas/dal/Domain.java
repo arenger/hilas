@@ -5,6 +5,8 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentMap;
@@ -24,6 +26,10 @@ public final class Domain {
    private static final String INS = "insert into domain values (?, ?)";
    private static final String SEL_DOM =
       "select id from domain where domain = ?";
+   private static final String SEL_SBS =
+      "select * from domain d " +
+      "left join safebrowseresult r on d.id = r.domainid " +
+      "group by d.id having (sum(ifnull(r.sbsid,0)) & ?) = 0";
 
    private Domain(String id, String domain) {
       this.id = id;
@@ -84,5 +90,21 @@ public final class Domain {
    
    public String getDomain() {
       return domain;
+   }
+
+   public static List<Domain> getUnvetted(Sbs sbs, int limit)
+      throws DalException {
+      List<Domain> ret = new ArrayList<Domain>();
+      if (limit == 0) { return ret; }
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_SBS)) {
+         ps.setInt(1, sbs.getId());
+         ps.setInt(2, limit);
+         ResultSet rs = ps.executeQuery();
+         while (rs.next()) {
+            ret.add(new Domain(rs.getString("id"), rs.getString("domain")));
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      return ret;
    }
 }
