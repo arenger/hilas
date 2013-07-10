@@ -8,6 +8,8 @@ import java.sql.ResultSet;
 import java.sql.SQLException;
 import java.sql.Timestamp;
 import java.sql.Types;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Set;
 
 import org.slf4j.Logger;
@@ -47,6 +49,17 @@ public class Site {
       "delete from siteframe where topsite = ?";
    private static final String INS_SITE_FRAME = 
       "insert into siteframe values (?,?)";
+
+   /* get a list (of variable length) of domains that have not yet been
+    * submitted to the specified service.  only... some services prefer
+    * urls, so, get a valid (visited) url for each domain. */
+   private static final String SEL_URL_SBS =
+      "select s.url from ( " +
+         "select d.id from domain d " +
+         "left join safebrowseresult r on d.id = r.domainid " +
+         "group by d.id having (sum(ifnull(r.sbsid,0)) & ?) = 0 " +
+      ") a join site s on a.id = s.domainid where s.visitState = 'VISITED' " +
+      "group by a.id limit ?";
 
    public Site(URL url, String source) {
       id = Util.md5(url.toString());
@@ -243,6 +256,23 @@ public class Site {
 
    public void setLintState(LintState lintState) {
       this.lintState = lintState;
+   }
+
+   // see comment for SEL_URL_SBS -
+   public static List<String> getUnvettedUrls(Sbs sbs, int limit)
+      throws DalException {
+      List<String> ret = new ArrayList<String>();
+      if (limit == 0) { return ret; }
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_URL_SBS)) {
+         ps.setInt(1, sbs.getId());
+         ps.setInt(2, limit);
+         ResultSet rs = ps.executeQuery();
+         while (rs.next()) {
+            ret.add(rs.getString(0));
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      return ret;
    }
 
 }

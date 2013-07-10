@@ -27,7 +27,7 @@ DEFAULT CHARACTER SET = latin1;
 DROP TABLE IF EXISTS `hilas`.`SafeBrowseService` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`SafeBrowseService` (
-  `id` CHAR(1) NOT NULL ,
+  `id` SMALLINT NOT NULL COMMENT 'starting at one, each successive id should be a left shift.  this makes queries against safebrowseresult faster and easier.' ,
   `name` VARCHAR(32) NOT NULL ,
   PRIMARY KEY (`id`) )
 ENGINE = InnoDB;
@@ -52,12 +52,12 @@ ENGINE = InnoDB;
 DROP TABLE IF EXISTS `hilas`.`SafeBrowseResult` ;
 
 CREATE  TABLE IF NOT EXISTS `hilas`.`SafeBrowseResult` (
+  `sbsId` SMALLINT NOT NULL ,
   `domainId` VARCHAR(36) NOT NULL ,
-  `sbsId` CHAR(1) NOT NULL COMMENT 'G,M,N,W, ...' ,
-  `result` TINYINT(4) NULL COMMENT '0 is OK, 1 is warning, 2 is bad, null is unknown by this sbs' ,
+  `result` TINYINT(1) NULL COMMENT '0 is ok, 1 is warning, 2 is bad, -1 is error, null is unknown by this sbs' ,
   `extra` VARCHAR(128) NULL DEFAULT NULL COMMENT 'extra details provided by the sbs' ,
   `insTime` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ,
-  PRIMARY KEY (`domainId`, `sbsId`) ,
+  PRIMARY KEY (`sbsId`, `domainId`) ,
   INDEX `fk_SafeBrowseResult_SafeBrowseService1_idx` (`sbsId` ASC) ,
   INDEX `fk_SafeBrowseResult_Domain1_idx` (`domainId` ASC) ,
   CONSTRAINT `fk_SafeBrowseResult_SafeBrowseService1`
