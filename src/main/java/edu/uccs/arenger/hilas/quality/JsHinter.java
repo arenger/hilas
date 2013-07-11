@@ -1,7 +1,6 @@
 package edu.uccs.arenger.hilas.quality;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -11,7 +10,9 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ScheduledFuture;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.GZIPInputStream;
 
+import org.apache.commons.io.IOUtils;
 import org.mozilla.javascript.Context;
 import org.mozilla.javascript.JavaScriptException;
 import org.mozilla.javascript.Scriptable;
@@ -37,24 +38,32 @@ public class JsHinter implements Worker, AutoCloseable {
    private ScheduledExecutorService timeoutService
       = Executors.newSingleThreadScheduledExecutor();
 
+   private static String jshintSrc;
+   private static String runSrc;
+
+   static {
+     GZIPInputStream in = null;
+      try {
+         in = new GZIPInputStream( ClassLoader.getSystemResourceAsStream(
+            RSRC_PATH + "/jshint.js.gz"));
+         jshintSrc = IOUtils.toString(in);
+         runSrc = IOUtils.toString(ClassLoader.getSystemResourceAsStream(
+            RSRC_PATH + "/run_jshint.js"));
+      } catch (IOException e) {
+         LOGGER.error("error loading resource: {}", e.getMessage());
+      } finally {
+         if (in != null) {
+            try { in.close(); } catch (IOException e) {}
+         }
+      }
+   }
+
    public long getDelay() {
       return 1;
    }
 
    public TimeUnit getTimeUnit() {
       return TimeUnit.SECONDS;
-   }
-
-   private void runJs(Context cx, Scriptable scope,
-      String name, String path) throws IOException {
-      URL script = ClassLoader.getSystemResource(path);
-      if (script == null) {
-         throw new IOException("resource not found");
-      }
-      try (InputStreamReader in =
-           new InputStreamReader(script.openStream())) {
-         cx.evaluateReader(scope, in, name, 1, null);
-      }
    }
 
    private Set<LintMsg> jshint(String src) throws IOException {
@@ -72,8 +81,8 @@ public class JsHinter implements Worker, AutoCloseable {
          Scriptable scope = cx.initStandardObjects();
          ScriptableObject.putProperty(scope, "raws" , raws);
          ScriptableObject.putProperty(scope, "input", src);
-         runJs(cx, scope, "jshint-load", RSRC_PATH + "jshint.js");
-         runJs(cx, scope, "jshint-run" , RSRC_PATH + "run_jshint.js");
+         cx.evaluateString(scope, jshintSrc, "jshint.js"    , 1, null);
+         cx.evaluateString(scope, runSrc   , "run_jshint.js", 1, null);
          future.cancel(true);
       } finally {
          Context.exit();
