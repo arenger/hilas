@@ -31,8 +31,7 @@ public class GoogleSb implements Worker {
       "https://sb-ssl.google.com/safebrowsing/api/lookup?" +
       "client=hilas&apikey=%s&appver=1.0&pver=3.0";
 
-   private static final String API_KEY =
-      "ABQIAAAAiZbM519ge5FvFY6mSe-wKRSuWng5CV9QQZARtMvgwl8mjUX7SA";
+   private static final String API_KEY = "";
 
    private boolean paused = false;
    private int   runCount = 0;
