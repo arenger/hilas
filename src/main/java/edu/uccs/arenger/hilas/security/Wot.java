@@ -1,5 +1,7 @@
 package edu.uccs.arenger.hilas.security;
 
+import java.io.IOException;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -16,6 +18,7 @@ import edu.uccs.arenger.hilas.Hilas;
 import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Domain;
+import edu.uccs.arenger.hilas.dal.SafeBrowseResult;
 import edu.uccs.arenger.hilas.dal.SafeBrowseResult.Result;
 import edu.uccs.arenger.hilas.dal.Sbs;
 
@@ -37,7 +40,7 @@ public class Wot implements Worker {
 
    public long getDelay() {
       // see http://www.mywot.com/en/terms/api
-      return 4;
+      return 5;
    }
 
    public TimeUnit getTimeUnit() {
@@ -53,6 +56,43 @@ public class Wot implements Worker {
          sb.append("/");
       }
       return sb.toString();
+   }
+
+   private String makeHostString(List<Domain> domains) {
+      if (domains == null)    { return ""; }
+      if (domains.size() < 1) { return ""; }
+      StringBuilder sb = new StringBuilder();
+      for (Domain d : domains) {
+         sb.append(d.getDomain());
+         sb.append("/");
+      }
+      return sb.toString();
+   }
+
+   private List<SafeBrowseResult> parseResponse(
+      List<Domain> doms, HttpResponse resp) {
+      List<SafeBrowseResult> ret = new ArrayList<SafeBrowseResult>();
+      try {
+         ObjectMapper mapper = new ObjectMapper();
+         JsonNode root = mapper.readTree(resp.getEntity().getContent());
+         for (Domain dom : doms) {
+            JsonNode sub = root.path(dom.getDomain());
+            Result r = determineResult(sub);
+            if (r != null) {
+               ((ObjectNode)sub).remove("target");
+               ((ObjectNode)sub).remove("categories");
+            }
+            SafeBrowseResult sbr = new SafeBrowseResult(dom.getId(), Sbs.WOT);
+            if (r != null) {
+               sbr.setResult(r);
+               sbr.setExtra(mapper.writeValueAsString(sub));
+            }
+            ret.add(sbr);
+         }
+      } catch (IOException e) {
+         LOGGER.error("{}: {}", e.getClass().getName(), e.getMessage());
+      }
+      return ret;
    }
 
    private void wrappedRun() {
@@ -71,10 +111,22 @@ public class Wot implements Worker {
             LOGGER.info("{} - RESUMING", this);
             paused = false;
          }
-
          LOGGER.debug("submitting {} domains for vetting", doms.size());
+         HttpResponse resp = Request
+            .Get(String.format(API, makeHostString(doms), API_KEY))
+            .execute().returnResponse();
+         int code = resp.getStatusLine().getStatusCode();
+         if (code == 200) {
+            SafeBrowseResult.batchInsert(parseResponse(doms, resp));
+         } else {
+            LOGGER.error("Response code: {}", code);
+         }
+      } catch (IOException e) {
+         LOGGER.error("problem likely related to http request", e);
+         paused = true;
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
+         paused = true;
       }
    }
 
@@ -86,7 +138,7 @@ public class Wot implements Worker {
       }
    }
 
-   private class MinKeeper {
+   private class MinFinder {
       private int min = Integer.MAX_VALUE;
       public void lower(JsonNode node) {
          int i = node.asInt(Integer.MAX_VALUE);
@@ -103,11 +155,13 @@ public class Wot implements Worker {
 
    private Result determineResult(JsonNode node) {
       if (node == null) { return null; }
-      MinKeeper mk = new MinKeeper();
-      mk.lower(node.path("0").path(0));
-      mk.lower(node.path("1").path(0));
-      mk.lower(node.path("2").path(0));
-      Integer min = mk.getMin();
+      MinFinder mf = new MinFinder();
+      mf.lower(node.path("0").path(0));
+      mf.lower(node.path("1").path(0));
+      mf.lower(node.path("2").path(0));
+      // ignoring child safety rating ("4"), as it probably has only
+      // an indirect relation to website security.
+      Integer min = mf.getMin();
       Result result = null;
       if (min != null) {
          if (min > 70) {

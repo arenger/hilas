@@ -2,6 +2,7 @@
 *.swp
 target/
 hilas.log
+src/main/resources/hilas.properties
 .DS_Store
 
 # Package Files #

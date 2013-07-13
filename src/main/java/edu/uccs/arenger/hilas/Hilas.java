@@ -22,6 +22,7 @@ import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.HtmlChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 import edu.uccs.arenger.hilas.security.GoogleSb;
+import edu.uccs.arenger.hilas.security.Wot;
 
 public final class Hilas {
    private static final Logger LOGGER = LoggerFactory.getLogger(Hilas.class);
@@ -141,6 +142,7 @@ public final class Hilas {
          startWorker(multiThredExec, new SiteVisitor());
          //startWorker(multiThredExec, new HtmlChecker());
          startWorker(multiThredExec, new GoogleSb());
+         startWorker(multiThredExec, new Wot());
 
          startWorker(singleThreadExec, jsHinter = new JsHinter());
          startWorker(singleThreadExec, new CssvManager());

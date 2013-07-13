@@ -29,7 +29,7 @@ public final class Domain {
    private static final String SEL_SBS =
       "select * from domain d " +
       "left join safebrowseresult r on d.id = r.domainid " +
-      "group by d.id having (sum(ifnull(r.sbsid,0)) & ?) = 0";
+      "group by d.id having (sum(ifnull(r.sbsid,0)) & ?) = 0 limit ?";
    private static final String SEL_COUNT = "select count(*) from domain";
 
    private Domain(String id, String domain) {
