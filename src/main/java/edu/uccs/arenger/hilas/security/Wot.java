@@ -12,6 +12,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 
+import edu.uccs.arenger.hilas.Hilas;
 import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Domain;
@@ -29,7 +30,7 @@ public class Wot implements Worker {
    private static final String API =
       "http://api.mywot.com/0.4/public_link_json2?hosts=%s&key=%s";
 
-   private static final String API_KEY = "";
+   private static final String API_KEY = Hilas.getProp("wot.apiKey");
 
    private boolean paused = false;
    private int   runCount = 0;

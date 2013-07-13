@@ -12,6 +12,7 @@ import org.apache.http.entity.StringEntity;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.uccs.arenger.hilas.Hilas;
 import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.SafeBrowseResult;
@@ -31,7 +32,7 @@ public class GoogleSb implements Worker {
       "https://sb-ssl.google.com/safebrowsing/api/lookup?" +
       "client=hilas&apikey=%s&appver=1.0&pver=3.0";
 
-   private static final String API_KEY = "";
+   private static final String API_KEY = Hilas.getProp("gsb.apiKey");
 
    private boolean paused = false;
    private int   runCount = 0;

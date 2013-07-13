@@ -47,10 +47,11 @@ public final class Hilas {
       RUN, LOAD, CRAWL
    };
 
+   private static Properties props;
+
    private Mode mode;
    private File loadFile;
    private String seedUrl;
-   private Properties props;
    private ScheduledExecutorService multiThredExec;
    private ScheduledExecutorService singleThreadExec;
    private JsHinter jsHinter;
@@ -102,6 +103,13 @@ public final class Hilas {
          System.exit(1);
       }
       return ret;
+   }
+
+   public static String getProp(String key) {
+      if (props == null) {
+         props = getProps();
+      }
+      return props.getProperty(key);
    }
 
    private void shutdown() {
