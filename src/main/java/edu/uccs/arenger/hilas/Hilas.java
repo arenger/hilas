@@ -30,15 +30,26 @@ public final class Hilas {
    private static final String USAGE =
       "usage: hilas run\n" +
       "OR     hilas load FILE\n" +
-      "OR     hilas check URL";
+      "OR     hilas crawl seedUrl";
+
+   /* Notes about CRAWL mode:
+    * The site.visitState column is "overloaded".  It is used by the
+    * SiteVisitor class when in RUN mode, and by DomainFinder when
+    * in CRAWL mode.  The only purpose for CRAWL mode is to find new
+    * domains.  To properly use CRAWL mode, start from an empty DB.
+    * After you've found some stuff, then, before using RUN mode,
+    * do this:
+    * > delete from site where visitSite = 'ERROR';
+    * > update site set visitState = 'NEW';
+    */
 
    enum Mode {
-      RUN, LOAD, CHECK
+      RUN, LOAD, CRAWL
    };
 
    private Mode mode;
    private File loadFile;
-   private String urlToCheck;
+   private String seedUrl;
    private Properties props;
    private ScheduledExecutorService multiThredExec;
    private ScheduledExecutorService singleThreadExec;
@@ -53,7 +64,7 @@ public final class Hilas {
          mode = Mode.valueOf(args[0].toUpperCase());
       } catch (IllegalArgumentException e) {
          System.out.println("invalid mode: " + args[0]);
-         System.out.println("please specify 'run', 'load', or 'check'");
+         System.out.println("please specify 'run', 'load', or 'crawl'");
          System.exit(1);
       }
       switch (mode) {
@@ -64,12 +75,12 @@ public final class Hilas {
          }
          loadFile = new File(args[1]);
          break;
-      case CHECK:
+      case CRAWL:
          if (args.length != 2) {
             System.out.println(USAGE);
             System.exit(1);
          }
-         urlToCheck = args[1];
+         seedUrl = args[1];
          break;
       default:
          break;
@@ -157,6 +168,40 @@ public final class Hilas {
       }
    }
 
+   private void crawl() {
+      try {
+         Pool.init(props);
+         Util.trustAllSslCerts();
+
+         boolean proceed = false;
+         URL url = null;
+         try {
+            url = new URL(seedUrl);
+            if (Util.protocolOk(url)) {
+               Site site = new Site(url, "seedUrl");
+               site.insert();
+               proceed = true;
+            } else {
+               LOGGER.error("unsupported protocol: " + url);
+            }
+         } catch (UkViolation e) {
+            LOGGER.warn("already exists: " + url);
+         } catch (MalformedURLException e) {
+            LOGGER.error("malformed url: " + url);
+         }
+
+         if (proceed) {
+            multiThredExec = Executors.newScheduledThreadPool(TPOOL_SIZE);
+            startWorker(multiThredExec, new DomainCounter());
+            startWorker(multiThredExec, new DomainFinder());
+            startWorker(multiThredExec, new DomainFinder());
+            startWorker(multiThredExec, new DomainFinder());
+         }
+      } catch (DalException e) {
+         LOGGER.error("problem", e);
+      }
+   }
+
    private void dispatch() {
       LOGGER.info("Mode: {}", mode);
       Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -171,8 +216,8 @@ public final class Hilas {
          case LOAD:
             load();
             break;
-         case CHECK:
-            LOGGER.info("this mode is not yet implemented."); //TODO
+         case CRAWL:
+            crawl();
             break;
       }
    }

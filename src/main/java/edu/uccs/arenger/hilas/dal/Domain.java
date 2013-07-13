@@ -30,6 +30,7 @@ public final class Domain {
       "select * from domain d " +
       "left join safebrowseresult r on d.id = r.domainid " +
       "group by d.id having (sum(ifnull(r.sbsid,0)) & ?) = 0";
+   private static final String SEL_COUNT = "select count(*) from domain";
 
    private Domain(String id, String domain) {
       this.id = id;
@@ -43,7 +44,6 @@ public final class Domain {
    public static Domain get(String domain) throws DalException {
       String id = cache.get(domain);
       if (id != null) {
-         LOGGER.debug("cache hit: {}", domain);
          return new Domain(id, domain);
       } else {
          id = getFromDb(domain);
@@ -52,9 +52,29 @@ public final class Domain {
             return new Domain(id, domain);
          }
       }
+      return insert(domain);
+   }
 
-      id = UUID.randomUUID().toString();
+   /* If the domain specified by url is new, then return its ID.
+    * Otherwise (if we've already seen it), then return null. */
+   public static String getIdIfNew(URL url) throws DalException {
+      String domain = url.getHost();
+      String id = cache.get(domain);
+      if (id != null) {
+         return null;
+      } else {
+         id = getFromDb(domain);
+         if (id != null) {
+            cache.put(domain,id);
+            return null;
+         }
+      }
+      return insert(domain).id;
+   }
+
+   private static Domain insert(String domain) throws DalException {
       Domain ret = null;
+      String id = UUID.randomUUID().toString();
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(INS)) {
          ps.setString(1, id);
@@ -78,8 +98,8 @@ public final class Domain {
          if (rs.next()) {
             id = rs.getString(1);
          }
-         LOGGER.debug("db lookup for {} - {}", domain,
-            id == null ? "not found" : "found" );
+         //LOGGER.debug("db lookup for {} - {}", domain,
+         //   id == null ? "not found" : "found" );
       } catch (SQLException e) { throw new DalException(e); }
       return id;
    }
@@ -103,6 +123,18 @@ public final class Domain {
          ResultSet rs = ps.executeQuery();
          while (rs.next()) {
             ret.add(new Domain(rs.getString("id"), rs.getString("domain")));
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      return ret;
+   }
+
+   public static int getCount() throws DalException {
+      int ret = -1;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_COUNT)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            ret = rs.getInt(1);
          }
       } catch (SQLException e) { throw new DalException(e); }
       return ret;
