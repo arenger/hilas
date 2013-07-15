@@ -41,6 +41,7 @@ DROP TABLE IF EXISTS `hilas`.`Domain` ;
 CREATE  TABLE IF NOT EXISTS `hilas`.`Domain` (
   `id` VARCHAR(36) NOT NULL ,
   `domain` VARCHAR(256) NOT NULL ,
+  `main` VARCHAR(128) NOT NULL COMMENT 'a rough attempt to identify the main part of this domain' ,
   PRIMARY KEY (`id`) ,
   UNIQUE INDEX `domain_UNIQUE` (`domain` ASC) )
 ENGINE = InnoDB;

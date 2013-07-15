@@ -44,14 +44,9 @@ public class DomainFinder implements Worker {
       }
       Matcher m = urlPat.matcher(html);
       while (m.find()) {
-         //TODO for reasons i don't feel like typing out right now,
-         //i think we'd find more domains if we were to save all
-         //these urls in some structure and then iterate over them
-         //randomly -- but i'll wait on implementing that for now.
          try {
             URL newUrl = new URL(m.group(1));
-            String domainId = Domain.getIdIfNew(newUrl);
-            if (domainId != null) {
+            if (!Domain.seenMain(newUrl)) {
                Site site = new Site(newUrl, "DomainFinder");
                site.insert();
             } else {
@@ -114,7 +109,7 @@ public class DomainFinder implements Worker {
     * has already seen.  We'll visit these urls (i.e. revisit their
     * domains) only if there are no "NEW" domains to visit.  This 
     * structure should enforce upper limits on its total size as well
-    * as the number of urls of the same domain. */
+    * as the number of urls of the same "main" domain. */
    private class UrlKeeper extends HashSet<URL> {
       private static final long serialVersionUID = 1L;
       private static final int MAX_SIZE = 3000;
@@ -123,7 +118,7 @@ public class DomainFinder implements Worker {
          = new HashMap<String,Integer>();
       public void considerKeeping(URL url) {
          if (this.size() > MAX_SIZE) { return; }
-         String domain = url.getHost();
+         String domain = Domain.getMain(url);
          Integer count = domainCounts.get(domain);
          if (count != null) {
             if (count > MAX_PER_DOM) { return; }
@@ -139,7 +134,7 @@ public class DomainFinder implements Worker {
          if (i.hasNext()) {
             ret = i.next();
             this.remove(ret);
-            String dom = ret.getHost();
+            String dom = Domain.getMain(ret);
             int count = domainCounts.get(dom);
             domainCounts.put(dom, count - 1);
          }

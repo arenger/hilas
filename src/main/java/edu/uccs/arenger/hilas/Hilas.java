@@ -15,8 +15,10 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import edu.uccs.arenger.hilas.dal.DalException;
+import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
+import edu.uccs.arenger.hilas.dal.Site.VisitState;
 import edu.uccs.arenger.hilas.dal.UkViolation;
 import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.HtmlChecker;
@@ -185,17 +187,21 @@ public final class Hilas {
 
          boolean proceed = false;
          URL url = null;
+         Site site = null;
          try {
             url = new URL(seedUrl);
             if (Util.protocolOk(url)) {
-               Site site = new Site(url, "seedUrl");
+               site = new Site(url, "seedUrl");
                site.insert();
                proceed = true;
             } else {
                LOGGER.error("unsupported protocol: " + url);
             }
-         } catch (UkViolation e) {
-            LOGGER.warn("already exists: " + url);
+         } catch (PkViolation e) {
+            LOGGER.info("already exists: " + url);
+            site.setState(VisitState.NEW);
+            site.update();
+            proceed = true;
          } catch (MalformedURLException e) {
             LOGGER.error("malformed url: " + url);
          }

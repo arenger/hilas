@@ -13,11 +13,11 @@ public class DomainCounter implements Worker {
       = LoggerFactory.getLogger(DomainCounter.class);
 
    public long getDelay() {
-      return 5;
+      return 1;
    }
 
    public TimeUnit getTimeUnit() {
-      return TimeUnit.SECONDS;
+      return TimeUnit.MINUTES;
    }
 
    private void wrappedRun() {
