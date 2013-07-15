@@ -63,6 +63,8 @@ public final class SafeBrowseResult {
          } else { 
             ps.setNull(4, Types.VARCHAR);
          }
+         ps.executeUpdate();
+         LOGGER.debug("single insert");
       } catch (SQLException e) {
          throw new DalException(e);
       }

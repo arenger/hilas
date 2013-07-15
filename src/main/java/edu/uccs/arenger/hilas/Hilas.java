@@ -24,6 +24,7 @@ import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.HtmlChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
 import edu.uccs.arenger.hilas.security.GoogleSb;
+import edu.uccs.arenger.hilas.security.NortonSw;
 import edu.uccs.arenger.hilas.security.Wot;
 
 public final class Hilas {
@@ -145,6 +146,7 @@ public final class Hilas {
          //startWorker(multiThredExec, new HtmlChecker());
          startWorker(multiThredExec, new GoogleSb());
          startWorker(multiThredExec, new Wot());
+         startWorker(multiThredExec, new NortonSw());
 
          startWorker(singleThreadExec, jsHinter = new JsHinter());
          startWorker(singleThreadExec, new CssvManager());
