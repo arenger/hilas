@@ -25,15 +25,13 @@ import org.slf4j.LoggerFactory;
  * JavaScript, Css, SiteJs, SiteCss, and SiteFrame
  * ... and then mark a site as "visted".  Validation/Linting is left
  * for other classes. */
-public class SiteVisitor implements Worker {
+public class SiteVisitor extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(SiteVisitor.class);
 
    private static final int MAX_DEPTH = 5; //frames within frames
    private static final int MAX_SUBSITES = 12; //max number of subsites 
    private Set<String> subSiteIds;
-   private boolean paused = false;
-   private int   runCount = 0;
 
    public long getDelay() {
       return 1;
@@ -226,9 +224,7 @@ public class SiteVisitor implements Worker {
       }
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          Site site = Site.nextUnvisited();
          subSiteIds = new HashSet<String>();
@@ -252,11 +248,4 @@ public class SiteVisitor implements Worker {
       }
    }
 
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch",e);
-      }
-   }
 }

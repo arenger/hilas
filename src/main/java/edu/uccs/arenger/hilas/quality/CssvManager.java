@@ -15,14 +15,11 @@ import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
 
-public class CssvManager implements Worker {
+public class CssvManager extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(CssvManager.class);
 
    private static final long MAX_LINT_RUNTIME = 300; //seconds
-
-   private boolean paused = false;
-   private int   runCount = 0;
 
    private ExecutorService validationService
       = Executors.newSingleThreadExecutor();
@@ -35,9 +32,7 @@ public class CssvManager implements Worker {
       return TimeUnit.SECONDS;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          Css css = Css.nextUnlinted();
          if (css == null) {
@@ -66,14 +61,6 @@ public class CssvManager implements Worker {
          }
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch",e);
       }
    }
 

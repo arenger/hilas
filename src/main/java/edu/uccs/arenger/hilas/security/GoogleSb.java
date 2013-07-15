@@ -21,7 +21,7 @@ import edu.uccs.arenger.hilas.dal.Sbs;
 import edu.uccs.arenger.hilas.dal.Site;
 
 // see https://developers.google.com/safe-browsing/lookup_guide
-public class GoogleSb implements Worker {
+public class GoogleSb extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(GoogleSb.class);
 
@@ -33,9 +33,6 @@ public class GoogleSb implements Worker {
       "client=hilas&apikey=%s&appver=1.0&pver=3.0";
 
    private static final String API_KEY = Hilas.getProp("gsb.apiKey");
-
-   private boolean paused = false;
-   private int   runCount = 0;
 
    public long getDelay() {
       // see https://developers.google.com/
@@ -88,9 +85,7 @@ public class GoogleSb implements Worker {
       return ret;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          List<Site> sites = Site.getUnvetted(Sbs.GOOGLE, MAX_PER_REQ);
          if (sites.size() == 0) {
@@ -125,14 +120,6 @@ public class GoogleSb implements Worker {
          }
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch", e);
       }
    }
 

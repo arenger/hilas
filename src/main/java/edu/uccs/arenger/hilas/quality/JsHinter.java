@@ -27,14 +27,12 @@ import edu.uccs.arenger.hilas.dal.JavaScript;
 import edu.uccs.arenger.hilas.dal.LintMsg;
 import edu.uccs.arenger.hilas.dal.LintMsg.Subject;
 
-public class JsHinter implements Worker, AutoCloseable {
+public class JsHinter extends Worker implements AutoCloseable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JsHinter.class);
    private static final String RSRC_PATH = "quality/";
    private static final long MAX_LINT_RUNTIME = 300; //seconds
 
-   private boolean paused = false;
-   private int   runCount = 0;
    private ScheduledExecutorService timeoutService
       = Executors.newSingleThreadScheduledExecutor();
 
@@ -98,9 +96,7 @@ public class JsHinter implements Worker, AutoCloseable {
       return ret;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          JavaScript js = JavaScript.nextUnhinted();
          if (js == null) {
@@ -151,14 +147,6 @@ public class JsHinter implements Worker, AutoCloseable {
          js.update();
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch",e);
       }
    }
 

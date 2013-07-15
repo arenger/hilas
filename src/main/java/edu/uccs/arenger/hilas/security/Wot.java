@@ -23,7 +23,7 @@ import edu.uccs.arenger.hilas.dal.SafeBrowseResult.Result;
 import edu.uccs.arenger.hilas.dal.Sbs;
 
 // see http://www.mywot.com/wiki/API
-public class Wot implements Worker {
+public class Wot extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(Wot.class);
 
@@ -34,9 +34,6 @@ public class Wot implements Worker {
       "http://api.mywot.com/0.4/public_link_json2?hosts=%s&key=%s";
 
    private static final String API_KEY = Hilas.getProp("wot.apiKey");
-
-   private boolean paused = false;
-   private int   runCount = 0;
 
    public long getDelay() {
       // see http://www.mywot.com/en/terms/api
@@ -95,9 +92,7 @@ public class Wot implements Worker {
       return ret;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          List<Domain> doms = Domain.getUnvetted(Sbs.WOT, MAX_PER_REQ);
          if (doms.size() == 0) {
@@ -127,14 +122,6 @@ public class Wot implements Worker {
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
          paused = true;
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch", e);
       }
    }
 
@@ -181,6 +168,7 @@ public class Wot implements Worker {
          System.exit(1);
       }
       Wot me = new Wot();
+      LOGGER.error("using key: {}", API_KEY);
       HttpResponse resp = Request
          .Get(String.format(API, me.makeHostString(args), API_KEY))
          .execute().returnResponse();

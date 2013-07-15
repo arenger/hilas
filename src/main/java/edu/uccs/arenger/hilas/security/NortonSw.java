@@ -1,7 +1,6 @@
 package edu.uccs.arenger.hilas.security;
 
 import java.io.IOException;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
@@ -13,7 +12,6 @@ import org.apache.http.client.fluent.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.uccs.arenger.hilas.Hilas;
 import edu.uccs.arenger.hilas.Worker;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Domain;
@@ -21,7 +19,7 @@ import edu.uccs.arenger.hilas.dal.SafeBrowseResult;
 import edu.uccs.arenger.hilas.dal.SafeBrowseResult.Result;
 import edu.uccs.arenger.hilas.dal.Sbs;
 
-public class NortonSw implements Worker {
+public class NortonSw extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(NortonSw.class);
 
@@ -33,15 +31,12 @@ public class NortonSw implements Worker {
    private static final String API =
       "http://ratings-wrs.symantec.com/rating?url=%s";
 
-   private static final Pattern patSiteEl
+   private static final Pattern PAT_SITE
       = Pattern.compile("<site\\s(.+?)\\/>", Pattern.MULTILINE);
-   private static final Pattern patRating = Pattern.compile("r=\"(\\w)\"");
-
-   private boolean paused = false;
-   private int   runCount = 0;
+   private static final Pattern PAT_RATE = Pattern.compile("r=\"(\\w)\"");
 
    public long getDelay() {
-      return 7; //no published ToS.  We'll assume this is cool.
+      return 5; //no published ToS.  We'll assume this is cool.
    }
 
    public TimeUnit getTimeUnit() {
@@ -53,9 +48,9 @@ public class NortonSw implements Worker {
       try {
          String content
             = IOUtils.toString(resp.getEntity().getContent()).trim();
-         Matcher m = patSiteEl.matcher(content);
+         Matcher m = PAT_SITE.matcher(content);
          if (m.find()) {
-            m = patRating.matcher(m.group(1));
+            m = PAT_RATE.matcher(m.group(1));
             if (m.find()) {
                String r = m.group(1);
                if (r.equals(R_OK)) {
@@ -68,10 +63,10 @@ public class NortonSw implements Worker {
                   ret = null;
                }
             } else {
-               LOGGER.error("patRating no match: {}", content);
+               LOGGER.error("PAT_RATE no match: {}", content);
             }
          } else {
-            LOGGER.error("patSiteEl no match: {}", content);
+            LOGGER.error("PAT_SITE no match: {}", content);
          }
       } catch (IOException e) {
          LOGGER.error("error while parsing response: {}", e.getMessage());
@@ -79,9 +74,7 @@ public class NortonSw implements Worker {
       return ret;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          List<Domain> doms = Domain.getUnvetted(Sbs.NORTON, 1);
          if (doms.size() == 0) {
@@ -114,14 +107,6 @@ public class NortonSw implements Worker {
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
          paused = true;
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch", e);
       }
    }
 

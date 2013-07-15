@@ -141,15 +141,15 @@ public final class Hilas {
          multiThredExec   = Executors.newScheduledThreadPool(TPOOL_SIZE);
          singleThreadExec = Executors.newSingleThreadScheduledExecutor();
 
-         startWorker(multiThredExec, new SiteVisitor());
-         startWorker(multiThredExec, new SiteVisitor());
+         //startWorker(multiThredExec, new SiteVisitor());
+         //startWorker(multiThredExec, new SiteVisitor());
          //startWorker(multiThredExec, new HtmlChecker());
          startWorker(multiThredExec, new GoogleSb());
          startWorker(multiThredExec, new Wot());
          startWorker(multiThredExec, new NortonSw());
 
-         startWorker(singleThreadExec, jsHinter = new JsHinter());
-         startWorker(singleThreadExec, new CssvManager());
+         //startWorker(singleThreadExec, jsHinter = new JsHinter());
+         //startWorker(singleThreadExec, new CssvManager());
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }

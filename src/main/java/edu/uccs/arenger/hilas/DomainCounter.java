@@ -8,7 +8,7 @@ import org.slf4j.LoggerFactory;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Domain;
 
-public class DomainCounter implements Worker {
+public class DomainCounter extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(DomainCounter.class);
 
@@ -20,7 +20,7 @@ public class DomainCounter implements Worker {
       return TimeUnit.MINUTES;
    }
 
-   private void wrappedRun() {
+   protected void wrappedRun() {
       try {
          LOGGER.info("{}", Domain.getCount());
       } catch (DalException e) {
@@ -28,11 +28,4 @@ public class DomainCounter implements Worker {
       }
    }
 
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch",e);
-      }
-   }
 }

@@ -13,16 +13,15 @@ import java.util.regex.Pattern;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.uccs.arenger.hilas.Util.TypedContent;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Domain;
 import edu.uccs.arenger.hilas.dal.Site;
 
-public class DomainFinder implements Worker {
+public class DomainFinder extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(DomainFinder.class);
 
-   private boolean paused = false;
-   private int   runCount = 0;
    private Pattern urlPat = Pattern.compile("(https?://[^\\s\"']+?)[\"']");
    private UrlKeeper urlk = new UrlKeeper();
 
@@ -37,7 +36,9 @@ public class DomainFinder implements Worker {
    private boolean visit(URL url) throws DalException {
       String html = null;
       try {
-         html = Util.getTypedContent(url).content;
+         TypedContent tc = Util.getTypedContent(url);
+         LOGGER.debug("ContentType: {}", tc.type);
+         html = tc.content;
       } catch (Exception e) {
          LOGGER.warn("problem loading url. msg: {}", e.getMessage());
          return false;
@@ -70,7 +71,7 @@ public class DomainFinder implements Worker {
       }
    }
 
-   private void wrappedRun() {
+   protected void wrappedRun() {
       runCount++;
       if (paused && ((runCount % 5) != 0)) { return; }
       try {
@@ -94,14 +95,6 @@ public class DomainFinder implements Worker {
          visit(site);
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch",e);
       }
    }
 

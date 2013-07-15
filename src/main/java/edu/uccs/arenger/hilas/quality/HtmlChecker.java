@@ -23,12 +23,9 @@ import edu.uccs.arenger.hilas.dal.LintMsg;
 import edu.uccs.arenger.hilas.dal.LintMsg.Subject;
 import edu.uccs.arenger.hilas.dal.Site;
 
-public class HtmlChecker implements Worker {
+public class HtmlChecker extends Worker {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(HtmlChecker.class);
-
-   private boolean paused = false;
-   private int   runCount = 0;
 
    public long getDelay() {
       /* To be polite, since this is a public web service:
@@ -78,9 +75,7 @@ public class HtmlChecker implements Worker {
       return ret;
    }
 
-   private void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
+   protected void wrappedRun() {
       try {
          Site site = Site.nextUnlinted();
          if (site == null) {
@@ -140,14 +135,6 @@ public class HtmlChecker implements Worker {
          }
       } catch (DalException e) {
          LOGGER.error("dal problem", e);
-      }
-   }
-
-   public void run() {
-      try {
-         wrappedRun();
-      } catch (Exception e) {
-         LOGGER.error("thread pool protection catch", e);
       }
    }
 
