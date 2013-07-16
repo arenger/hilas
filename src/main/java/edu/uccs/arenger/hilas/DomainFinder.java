@@ -72,8 +72,6 @@ public class DomainFinder extends Worker {
    }
 
    protected void wrappedRun() {
-      runCount++;
-      if (paused && ((runCount % 5) != 0)) { return; }
       try {
          Site site = Site.nextUnvisited();
          if (site == null) {
