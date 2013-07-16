@@ -45,6 +45,7 @@ public final class Hilas {
     * do this:
     * > delete from site where visitSite = 'ERROR';
     * > update site set visitState = 'NEW';
+    * > delete (the domains that now have no associated sites)
     */
 
    enum Mode {

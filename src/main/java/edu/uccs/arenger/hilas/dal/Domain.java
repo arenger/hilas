@@ -84,14 +84,11 @@ public final class Domain {
    public static String getMain(String domain) {
       if (domain == null) { return null; }
       String[] parts = domain.toLowerCase().split("\\.");
-      if (parts.length < 2) { return domain; }
+      if (parts.length < 3) { return domain; }
       String last = parts[parts.length - 1];
       String stl  = parts[parts.length - 2];
       if (onlyDigits.matcher(last).matches()) {
          return domain; // assume it's an IP address
-      }
-      if (parts.length == 2) {
-         return domain;
       }
       String main = null;
       String test = stl + "." + last;

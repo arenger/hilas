@@ -6,10 +6,12 @@ import java.util.HashMap;
 import java.util.Iterator;
 import java.util.Map;
 import java.util.HashSet;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
+import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -24,6 +26,16 @@ public class DomainFinder extends Worker {
 
    private Pattern urlPat = Pattern.compile("(https?://[^\\s\"']+?)[\"']");
    private UrlKeeper urlk = new UrlKeeper();
+
+   private static final Set<String> SKIPEXT;
+
+   static {
+      SKIPEXT = new HashSet<String>();
+      //This is far from exhaustive, of course, but it'll help -
+      SKIPEXT.add("js");  SKIPEXT.add("css"); SKIPEXT.add("jpg");
+      SKIPEXT.add("pdf"); SKIPEXT.add("gif"); SKIPEXT.add("swf");
+      SKIPEXT.add("png");
+   }
 
    public long getDelay() {
       return 1;
@@ -51,7 +63,11 @@ public class DomainFinder extends Worker {
       Matcher m = urlPat.matcher(tc.content);
       while (m.find()) {
          try {
-            URL newUrl = new URL(m.group(1));
+            URL newUrl = new URL(m.group(1)); //validate the url
+            String lcp = newUrl.getPath().toLowerCase();
+            if (SKIPEXT.contains(FilenameUtils.getExtension(lcp))) {
+               continue;
+            }
             if (!Domain.seenMain(newUrl)) {
                Site site = new Site(newUrl, "DomainFinder");
                site.insert();
