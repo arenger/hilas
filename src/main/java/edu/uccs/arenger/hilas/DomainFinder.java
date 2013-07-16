@@ -34,16 +34,21 @@ public class DomainFinder extends Worker {
    }
 
    private boolean visit(URL url) throws DalException {
-      String html = null;
+      TypedContent tc = null;
       try {
-         TypedContent tc = Util.getTypedContent(url);
-         LOGGER.debug("ContentType: {}", tc.type);
-         html = tc.content;
+         tc = Util.getTypedContent(url);
       } catch (Exception e) {
          LOGGER.warn("problem loading url. msg: {}", e.getMessage());
          return false;
       }
-      Matcher m = urlPat.matcher(html);
+      if (tc.type.toLowerCase().indexOf("text/html") == -1) {
+         //DomainFinder is looking for just html pages...
+         LOGGER.debug("discarding: {}", tc.type);
+         return false;
+      } else {
+         LOGGER.debug("processing: {}", tc.type);
+      }
+      Matcher m = urlPat.matcher(tc.content);
       while (m.find()) {
          try {
             URL newUrl = new URL(m.group(1));
