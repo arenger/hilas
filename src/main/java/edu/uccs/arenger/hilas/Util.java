@@ -1,8 +1,6 @@
 package edu.uccs.arenger.hilas;
 
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.io.Reader;
 import java.math.BigInteger;
 import java.net.URL;
 import java.net.URLConnection;
@@ -24,6 +22,7 @@ import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.commons.io.IOUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,7 +46,6 @@ public final class Util {
 
    public static TypedContent getTypedContent(URL url) throws IOException {
       TypedContent ret = new TypedContent();
-      StringBuilder sb = new StringBuilder();
       URLConnection conn = url.openConnection();
       Pattern p = Pattern.compile("text/html;\\s+charset=([^\\s]+)\\s*");
       String charset = DEFAULT_CHARSET;
@@ -59,16 +57,7 @@ public final class Util {
       } catch (Exception e) {
          LOGGER.warn("oddity: {}; url: {}", e.getMessage(), url);
       }
-      Reader in = new InputStreamReader(conn.getInputStream(), charset);
-      char[] charArray = new char[1024];
-      int charsRead = 0;
-      do {
-         charsRead = in.read(charArray);
-         if (charsRead >= 0) {
-            sb.append(charArray, 0, charsRead);
-         }
-      } while (charsRead > 0);
-      ret.content = sb.toString();
+      ret.content = IOUtils.toString(conn.getInputStream(), charset);
       if (ret.type == null) {
          ret.type = guessContentType(url);
       }
