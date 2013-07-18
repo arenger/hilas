@@ -101,7 +101,7 @@ public class McAfeeSa extends Worker {
          String html = Util.getTypedContent(new URL(
             String.format(MSA_URL, doms.get(0)))).content;
          SafeBrowseResult sbr = new SafeBrowseResult(
-            doms.get(0).getId(), Sbs.NORTON);
+            doms.get(0).getId(), Sbs.MCAFEE);
          sbr.setResult(getVerdict(html));
          sbr.setExtra(getCategory(html));
          sbr.insert();
