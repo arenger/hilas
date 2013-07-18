@@ -11,6 +11,7 @@ import java.util.concurrent.TimeUnit;
 
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
+import edu.uccs.arenger.hilas.dal.Domain;
 import edu.uccs.arenger.hilas.dal.JavaScript;
 import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Site;
@@ -31,6 +32,7 @@ public class SiteVisitor extends Worker {
 
    private static final int MAX_DEPTH = 5; //frames within frames
    private static final int MAX_SUBSITES = 12; //max number of subsites 
+   private static final int TARGET_SPD = 3; //target # of sites per dom
    private Set<String> subSiteIds;
 
    public long getDelay() {
@@ -139,10 +141,10 @@ public class SiteVisitor extends Worker {
                if (Util.protocolOk(url)) {
                   refs.add(url);
                } else {
-                  LOGGER.warn("(i)frame unsupported protocol: {}", url);
+                  LOGGER.debug("unsupported ref protocol: {}", url);
                }
             } catch (MalformedURLException e) {
-               LOGGER.warn("(i)frame malformed url: {}", href);
+               LOGGER.debug("malformed ref url: {}", href);
             }
          }
       }
@@ -174,6 +176,36 @@ public class SiteVisitor extends Worker {
                visit(site, depth + 1);
             }
          }
+      }
+   }
+
+   private boolean samePage(URL u1, URL u2) {
+      String a = u1.toString();
+      String b = u2.toString();
+      //ignore anchors and any trailing slash -
+      a = a.replaceAll("#.*$",""); a = a.replaceAll("/$","");
+      b = b.replaceAll("#.*$",""); b = b.replaceAll("/$","");
+      return a.equals(b);
+   }
+
+   private void addPeers(Site site, TagNode root) throws DalException {
+      int spd = Domain.siteCountFor(site.getDomainId());
+      if (spd > TARGET_SPD) { return; }
+      List<URL> links = getRefs(site.getUrl(), root, "a" , "href");
+      int i = 0;
+      while ((i < links.size()) && (spd < TARGET_SPD)) {
+         URL link = links.get(i);
+         if (!samePage(site.getUrl(), link) &&
+             link.getHost().equals(site.getUrl().getHost())) {
+            Site peer = new Site(link, "hilas:peer");
+            try {
+               peer.insert();
+               spd++;
+            } catch (PkViolation e) {
+               LOGGER.debug("skipping duplicate peer: {}", link);
+            }
+         }
+         i++;
       }
    }
 
@@ -213,6 +245,7 @@ public class SiteVisitor extends Worker {
             fishForResource(site, root, jsNet);
             fishForResource(site, root, cssNet);
             visitChildren(site, root, depth);
+            addPeers(site, root);
          } else {
             site.setSize(0);
          }

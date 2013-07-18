@@ -50,6 +50,10 @@ public final class Domain {
    private static final String MAIN_EXISTS =
       "select 1 from domain where main = ? limit 1";
 
+   private static final String SITES_PER_DOM =
+      "select count(*) from domain d join site s on d.id = s.domainId " +
+      "where d.id = ?";
+
    private static final Pattern onlyDigits = Pattern.compile("\\d+");
 
    private Domain(String id, String domain) {
@@ -183,6 +187,19 @@ public final class Domain {
       int ret = -1;
       try (Connection conn = Pool.getConnection();
            PreparedStatement ps = conn.prepareStatement(SEL_COUNT)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            ret = rs.getInt(1);
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      return ret;
+   }
+
+   public static int siteCountFor(String domainId) throws DalException {
+      int ret = -1;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SITES_PER_DOM)) {
+         ps.setString(1, domainId);
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             ret = rs.getInt(1);

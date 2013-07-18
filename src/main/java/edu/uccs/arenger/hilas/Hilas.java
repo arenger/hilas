@@ -174,7 +174,7 @@ public final class Hilas {
                } else {
                   LOGGER.error("unsupported protocol: " + url);
                }
-            } catch (UkViolation e) {
+            } catch (PkViolation e) {
                LOGGER.warn("already exists: " + url);
             } catch (MalformedURLException e) {
                LOGGER.error("malformed url: " + url);
