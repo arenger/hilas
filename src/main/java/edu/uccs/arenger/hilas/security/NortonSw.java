@@ -26,6 +26,7 @@ public class NortonSw extends Worker {
    private static final String R_OK      = "g";
    private static final String R_WARN    = "w";
    private static final String R_BAD     = "b";
+   private static final String R_SECURE  = "r";
    private static final String R_UNKNOWN = "u";
 
    private static final String API =
@@ -55,12 +56,16 @@ public class NortonSw extends Worker {
                String r = m.group(1);
                if (r.equals(R_OK)) {
                   ret = Result.OK;
+               } else if (r.equals(R_SECURE)) {
+                  ret = Result.OK;
                } else if (r.equals(R_WARN)) {
                   ret = Result.WARN;
                } else if (r.equals(R_BAD)) {
                   ret = Result.BAD;
                } else if (r.equals(R_UNKNOWN)) {
                   ret = null;
+               } else {
+                  LOGGER.error("unexpected vet code: {}", r);
                }
             } else {
                LOGGER.error("PAT_RATE no match: {}", content);
