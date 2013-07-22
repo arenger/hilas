@@ -20,7 +20,7 @@ public final class Analysis {
 
    private static final String INS_ERR =
       "insert into analysis (domainId, domain) values (?, 'error')";
-   private static String insertSql;
+   private String insertSql;
 
    public Analysis() {
       try {

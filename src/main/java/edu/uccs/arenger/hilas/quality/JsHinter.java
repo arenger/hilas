@@ -1,6 +1,7 @@
 package edu.uccs.arenger.hilas.quality;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.HashSet;
@@ -30,7 +31,7 @@ import edu.uccs.arenger.hilas.dal.LintMsg.Subject;
 public class JsHinter extends Worker implements AutoCloseable {
    private static final Logger LOGGER
       = LoggerFactory.getLogger(JsHinter.class);
-   private static final String RSRC_PATH = "quality/";
+   private static final String RSRC_PATH = "quality";
    private static final long MAX_LINT_RUNTIME = 300; //seconds
 
    private ScheduledExecutorService timeoutService
@@ -39,19 +40,27 @@ public class JsHinter extends Worker implements AutoCloseable {
    private static String jshintSrc;
    private static String runSrc;
 
-   static {
-     GZIPInputStream in = null;
-      try {
-         in = new GZIPInputStream( ClassLoader.getSystemResourceAsStream(
-            RSRC_PATH + "/jshint.js.gz"));
-         jshintSrc = IOUtils.toString(in);
-         runSrc = IOUtils.toString(ClassLoader.getSystemResourceAsStream(
-            RSRC_PATH + "/run_jshint.js"));
-      } catch (IOException e) {
-         LOGGER.error("error loading resource: {}", e.getMessage());
-      } finally {
-         if (in != null) {
-            try { in.close(); } catch (IOException e) {}
+   public JsHinter() {
+      /* There was some problem loading these in a static block,
+       * so we'll test for null in the constructor... */
+      if ((jshintSrc == null) || (runSrc == null)) {
+         GZIPInputStream in = null;
+         try {
+            InputStream stream = ClassLoader.getSystemResourceAsStream(
+               RSRC_PATH + "/jshint.js.gz");
+            if (stream == null) {
+               throw new RuntimeException("blah!");
+            }
+            in = new GZIPInputStream(stream);
+            jshintSrc = IOUtils.toString(in);
+            runSrc = IOUtils.toString(ClassLoader.getSystemResourceAsStream(
+               RSRC_PATH + "/run_jshint.js"));
+         } catch (IOException e) {
+            LOGGER.error("error loading resource: {}", e.getMessage());
+         } finally {
+            if (in != null) {
+               try { in.close(); } catch (IOException e) {}
+            }
          }
       }
    }
