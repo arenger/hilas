@@ -9,6 +9,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
+import edu.uccs.arenger.hilas.Util.TypedContent;
 import edu.uccs.arenger.hilas.dal.Css;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.Domain;
@@ -226,11 +227,21 @@ public class SiteVisitor extends Worker {
          site.setVisitTime(System.currentTimeMillis());
          site.update();
 
-         String html = null;
+         TypedContent tc = null;
          try {
-            html = Util.getTypedContent(site.getUrl()).content;
+            tc = Util.getTypedContent(site.getUrl());
          } catch (Exception e) {
             LOGGER.warn("problem loading url. msg: {}", e.getMessage());
+            site.setState(Site.VisitState.ERROR);
+            site.update();
+            return;
+         }
+         // The study will be constrained to pages whose content type
+         // contains "text/html", which will allow them to be submitted
+         // to the html validator...
+         if (tc.type.toLowerCase().indexOf("text/html") == -1) {
+            LOGGER.warn("skipping {} because ContentType = {}",
+               site.getUrl(), tc.type);
             site.setState(Site.VisitState.ERROR);
             site.update();
             return;
@@ -239,9 +250,9 @@ public class SiteVisitor extends Worker {
          HtmlCleaner hc     = new HtmlCleaner();
          JsNet       jsNet  = new JsNet();
          CssNet      cssNet = new CssNet();
-         if (html != null) {
-            site.setSize(html.length());
-            TagNode root = hc.clean(html);
+         if (tc.content != null) {
+            site.setSize(tc.content.length());
+            TagNode root = hc.clean(tc.content);
             fishForResource(site, root, jsNet);
             fishForResource(site, root, cssNet);
             visitChildren(site, root, depth);
