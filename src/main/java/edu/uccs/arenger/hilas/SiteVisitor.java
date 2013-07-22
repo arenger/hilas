@@ -66,6 +66,8 @@ public class SiteVisitor extends Worker {
          LOGGER.warn("problem visiting rsrc: {}", e.getMessage());
       } catch (DalException e) {
          LOGGER.error("problem storing rsrc info", e);
+      } catch (IllegalArgumentException e) {
+         LOGGER.error("problem storing rsrc info: {}", e.getMessage());
       }
    }
 
