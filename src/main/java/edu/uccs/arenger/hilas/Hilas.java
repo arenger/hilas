@@ -14,12 +14,12 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import edu.uccs.arenger.hilas.dal.Analysis;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Pool;
 import edu.uccs.arenger.hilas.dal.Site;
 import edu.uccs.arenger.hilas.dal.Site.VisitState;
-import edu.uccs.arenger.hilas.dal.UkViolation;
 import edu.uccs.arenger.hilas.quality.CssvManager;
 import edu.uccs.arenger.hilas.quality.HtmlChecker;
 import edu.uccs.arenger.hilas.quality.JsHinter;
@@ -35,7 +35,8 @@ public final class Hilas {
    private static final String USAGE =
       "usage: hilas run\n" +
       "OR     hilas load FILE\n" +
-      "OR     hilas crawl seedUrl";
+      "OR     hilas crawl seedUrl\n" +
+      "OR     hilas analyze";
 
    /* Notes about CRAWL mode:
     * The site.visitState column is "overloaded".  It is used by the
@@ -50,7 +51,7 @@ public final class Hilas {
     */
 
    enum Mode {
-      RUN, LOAD, CRAWL
+      RUN, LOAD, CRAWL, ANALYZE
    };
 
    private static Properties props;
@@ -223,6 +224,15 @@ public final class Hilas {
       }
    }
 
+   private void analyze() {
+      try {
+         Pool.init(props);
+         new Analysis().go();
+      } catch (DalException e) {
+         LOGGER.error("problem", e);
+      }
+   }
+
    private void dispatch() {
       LOGGER.info("Mode: {}", mode);
       Runtime.getRuntime().addShutdownHook(new Thread() {
@@ -239,6 +249,9 @@ public final class Hilas {
             break;
          case CRAWL:
             crawl();
+            break;
+         case ANALYZE:
+            analyze();
             break;
       }
    }

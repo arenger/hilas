@@ -54,6 +54,10 @@ public final class Domain {
       "select count(*) from domain d join site s on d.id = s.domainId " +
       "where d.id = ?";
 
+   private static final String SEL_UNANALYZED =
+      "select id from domain where id not in (" +
+      "select domainId from analysis) limit 1";
+
    private static final Pattern onlyDigits = Pattern.compile("\\d+");
 
    private Domain(String id, String domain) {
@@ -203,6 +207,18 @@ public final class Domain {
          ResultSet rs = ps.executeQuery();
          if (rs.next()) {
             ret = rs.getInt(1);
+         }
+      } catch (SQLException e) { throw new DalException(e); }
+      return ret;
+   }
+
+   public static String getUnanalyzedId() throws DalException {
+      String ret = null;
+      try (Connection conn = Pool.getConnection();
+           PreparedStatement ps = conn.prepareStatement(SEL_UNANALYZED)) {
+         ResultSet rs = ps.executeQuery();
+         if (rs.next()) {
+            ret = rs.getString(1);
          }
       } catch (SQLException e) { throw new DalException(e); }
       return ret;
