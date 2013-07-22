@@ -122,7 +122,7 @@ public class NortonSw extends Worker {
       }
       NortonSw me = new NortonSw();
       HttpResponse resp = Request
-         .Get(String.format(API, args[0]))
+         .Get(String.format(API, args[0])).socketTimeout(10000)
          .execute().returnResponse();
       int code = resp.getStatusLine().getStatusCode();
       if (code == 200) {

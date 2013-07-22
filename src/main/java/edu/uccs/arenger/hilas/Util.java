@@ -3,7 +3,6 @@ package edu.uccs.arenger.hilas;
 import java.io.IOException;
 import java.math.BigInteger;
 import java.net.URL;
-import java.net.URLConnection;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
@@ -11,8 +10,6 @@ import java.security.cert.X509Certificate;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
-import java.util.HashMap;
-import java.util.Map;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -21,8 +18,10 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManager;
 import javax.net.ssl.X509TrustManager;
 
-import org.apache.commons.io.FilenameUtils;
 import org.apache.commons.io.IOUtils;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.client.fluent.Request;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -31,48 +30,32 @@ import edu.uccs.arenger.hilas.dal.DalException;
 public final class Util {
    private static final Logger LOGGER = LoggerFactory.getLogger(Util.class);
    private static final String DEFAULT_CHARSET = "ISO-8859-1";
-   private static Map<String,String> extMap;
-
-   static {
-      extMap = new HashMap<String,String>();
-      extMap.put("html" , "text/html");
-      extMap.put("htm"  , "text/html");
-      extMap.put("xhtml", "application/xhtml+xml");
-      extMap.put("xht"  , "application/xhtml+xml");
-      extMap.put("xml"  , "application/xml");
-   }
+   private static final Pattern CHARSET_PAT
+      = Pattern.compile("text/html;\\s+charset=([^\\s]+)\\s*");
+   private static final int SOCKET_TIMEOUT = 30000; //millis
 
    private Util() {}
 
    public static TypedContent getTypedContent(URL url) throws IOException {
       TypedContent ret = new TypedContent();
-      URLConnection conn = url.openConnection();
-      Pattern p = Pattern.compile("text/html;\\s+charset=([^\\s]+)\\s*");
-      String charset = DEFAULT_CHARSET;
-      try {
-         //getContentType sometimes returns a NullPointerException -
-         ret.type = conn.getContentType();
-         Matcher m = p.matcher(ret.type);
-         if (m.matches()) { charset = m.group(1); }
-      } catch (Exception e) {
-         LOGGER.warn("oddity: {}; url: {}", e.getMessage(), url);
-      }
-      ret.content = IOUtils.toString(conn.getInputStream(), charset);
-      if (ret.type == null) {
-         ret.type = guessContentType(url);
-      }
-      return ret;
-   }
-
-   private static String guessContentType(URL url) {
-      String ret = "text/html"; //default
-      String ext = FilenameUtils.getExtension(url.getPath());
-      if (ext.length() != 0) {
-         String type = extMap.get(ext);
-         if (type != null) {
-            ret = type;
+      HttpResponse resp = Request
+         .Get(url.toString()).socketTimeout(3000)
+         .execute().returnResponse();
+      int code = resp.getStatusLine().getStatusCode();
+      if (code == 200) {
+         HttpEntity entity = resp.getEntity();
+         if (entity.getContentType() != null) {
+            ret.type = entity.getContentType().getValue();
          }
+         String charset = DEFAULT_CHARSET;
+         Matcher m = CHARSET_PAT.matcher(ret.type);
+         if (m.matches()) { charset = m.group(1); }
+         ret.content = IOUtils.toString(entity.getContent(), charset).trim();
+      } else {
+         throw new IOException(String.format("Response code %d or %s",
+            code, url.toString()));
       }
+      if (ret.type == null) { ret.type = "unknown"; }
       return ret;
    }
 
@@ -152,6 +135,16 @@ public final class Util {
             LOGGER.error("problem setting autocommit", e);
          }
       }
+   }
+
+   public static void main(String[] args) throws Exception {
+      if (args.length != 1) {
+         System.out.println("see usage");
+         System.exit(1);
+      }
+      TypedContent tc = Util.getTypedContent(new URL(args[0]));
+      System.out.println(tc.type);
+      System.out.println(tc.content);
    }
 
 }

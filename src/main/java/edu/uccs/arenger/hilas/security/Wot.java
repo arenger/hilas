@@ -109,7 +109,7 @@ public class Wot extends Worker {
          LOGGER.debug("submitting {} domains for vetting", doms.size());
          HttpResponse resp = Request
             .Get(String.format(API, makeHostString(doms), API_KEY))
-            .execute().returnResponse();
+            .socketTimeout(10000).execute().returnResponse();
          int code = resp.getStatusLine().getStatusCode();
          if (code == 200) {
             SafeBrowseResult.batchInsert(parseResponse(doms, resp));

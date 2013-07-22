@@ -108,7 +108,7 @@ public class GoogleSb extends Worker {
          }
          try {
             HttpResponse resp = Request.Post(String.format(API, API_KEY))
-               .body(new StringEntity(sb.toString()))
+               .socketTimeout(10000).body(new StringEntity(sb.toString()))
                .execute().returnResponse();
             List<SafeBrowseResult> batch = parseResponse(sites, resp);
             if (batch != null) {
