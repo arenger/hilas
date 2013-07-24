@@ -39,7 +39,7 @@ public final class Util {
    public static TypedContent getTypedContent(URL url) throws IOException {
       TypedContent ret = new TypedContent();
       HttpResponse resp = Request
-         .Get(url.toString()).socketTimeout(3000)
+         .Get(url.toString()).socketTimeout(SOCKET_TIMEOUT)
          .execute().returnResponse();
       int code = resp.getStatusLine().getStatusCode();
       if (code == 200) {
