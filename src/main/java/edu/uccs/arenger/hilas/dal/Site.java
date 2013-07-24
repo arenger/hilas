@@ -39,7 +39,8 @@ public class Site {
    private static final String SEL_UNVISITED = 
       "select * from site where visitState = 'NEW' limit 1";
    private static final String SEL_UNLINTED = 
-      "select * from site where lintState = 'UNPROCESSED' limit 1";
+      "select * from site where lintState = 'UNPROCESSED' " +
+      "and visitstate = 'VISITED' limit 1";
    private static final String INS =
       "insert into site values (?,?,?,?,?,?,?,?)";
    private static final String UPD = 

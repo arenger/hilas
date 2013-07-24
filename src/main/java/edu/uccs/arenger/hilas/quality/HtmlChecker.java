@@ -38,7 +38,7 @@ public class HtmlChecker extends Worker {
        * - It happens that I need "out=gnu", which also looks to be
        *   the most concise uncompressed output format.
        */
-      return 8;
+      return 10;
    }
 
    public TimeUnit getTimeUnit() {
