@@ -4,6 +4,7 @@ DROP TABLE IF EXISTS `hilas`.`analysis` ;
 CREATE  TABLE IF NOT EXISTS `hilas`.`analysis` (
   `domainId` VARCHAR(36) NOT NULL ,
   `domain` VARCHAR(256) NOT NULL ,
+  `source` VARCHAR(32) NULL,
 
   `sbsSum` TINYINT NULL ,
 

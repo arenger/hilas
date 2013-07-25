@@ -114,7 +114,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`SiteJs` (
   CONSTRAINT `fk_SiteJs_Site1`
     FOREIGN KEY (`siteId` )
     REFERENCES `hilas`.`Site` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_SiteJs_JavaScript1`
     FOREIGN KEY (`jsId` )
@@ -139,12 +139,12 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`SiteFrame` (
   CONSTRAINT `fk_site_frame_site1`
     FOREIGN KEY (`topsite` )
     REFERENCES `hilas`.`Site` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_site_frame_site2`
     FOREIGN KEY (`subsite` )
     REFERENCES `hilas`.`Site` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
 
@@ -263,7 +263,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`SiteCss` (
   CONSTRAINT `fk_SiteCss_Site1`
     FOREIGN KEY (`siteId` )
     REFERENCES `hilas`.`Site` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_SiteCss_Css1`
     FOREIGN KEY (`cssId` )

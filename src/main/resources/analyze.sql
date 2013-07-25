@@ -1,8 +1,8 @@
 insert into analysis
-select a.*, null, null, null, null, b.numSites, b.htmlBytes,
-ifnull(c.htmlLintCount,0), ifnull(c.htmlLintSum,0), ifnull(d.jsBytes,0),
-ifnull(e.jsLintCount,0), ifnull(e.jsLintSum,0), ifnull(f.cssBytes,0),
-ifnull(g.cssLintCount,0), ifnull(g.cssLintSum,0)
+select a.id, a.domain, h.source, a.sbsSum, null, null, null, null, b.numSites,
+b.htmlBytes, ifnull(c.htmlLintCount,0), ifnull(c.htmlLintSum,0),
+ifnull(d.jsBytes,0), ifnull(e.jsLintCount,0), ifnull(e.jsLintSum,0),
+ifnull(f.cssBytes,0), ifnull(g.cssLintCount,0), ifnull(g.cssLintSum,0)
 from ( -- sbs summary:
    select ad.id, ad.domain, sum(ifnull(sbr.result,0)) as sbsSum
    from domain ad join safebrowseresult sbr on ad.id = sbr.domainId
@@ -50,5 +50,8 @@ from ( -- sbs summary:
       join cssvalid cssv on css.id = cssv.cssId
       join lintMsg lm on cssv.msgId = lm.id
       where gs2.domainid = ? group by lm.id ) gs group by gs.domainId
-) g on a.id = g.domainId;
+) g on a.id = g.domainId join (
+   select hs.domainId, hs.source from site hs where hs.domainid = ?
+   and hs.source not like 'hilas%' group by hs.domainId
+) h on a.id = h.domainId;
 -- NOTE the case when having "sum(sbr.sbsId) = 15" is not met
