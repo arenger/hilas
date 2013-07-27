@@ -72,7 +72,8 @@ public final class Hilas {
          mode = Mode.valueOf(args[0].toUpperCase());
       } catch (IllegalArgumentException e) {
          System.out.println("invalid mode: " + args[0]);
-         System.out.println("please specify 'run', 'load', or 'crawl'");
+         System.out.println(
+            "please specify 'run', 'load', 'crawl', or 'analyze'");
          System.exit(1);
       }
       switch (mode) {
