@@ -64,7 +64,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`SafeBrowseResult` (
   CONSTRAINT `fk_SafeBrowseResult_SafeBrowseService1`
     FOREIGN KEY (`sbsId` )
     REFERENCES `hilas`.`SafeBrowseService` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_SafeBrowseResult_Domain1`
     FOREIGN KEY (`domainId` )
@@ -94,7 +94,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`Site` (
   CONSTRAINT `fk_Site_Domain1`
     FOREIGN KEY (`domainId` )
     REFERENCES `hilas`.`Domain` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION)
 ENGINE = InnoDB
 DEFAULT CHARACTER SET = latin1;
@@ -177,7 +177,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsHint` (
   CONSTRAINT `fk_JsHint_JsHintMsg1`
     FOREIGN KEY (`msgId` )
     REFERENCES `hilas`.`lintMsg` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsHint_JavaScript1`
     FOREIGN KEY (`jsId` )
@@ -201,7 +201,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`HtmlValid` (
   CONSTRAINT `fk_HtmlValid_Site1`
     FOREIGN KEY (`siteId` )
     REFERENCES `hilas`.`Site` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_HtmlValid_lintMsg1`
     FOREIGN KEY (`msgId` )
@@ -239,7 +239,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`CssValid` (
   CONSTRAINT `fk_CssValid_Css1`
     FOREIGN KEY (`cssId` )
     REFERENCES `hilas`.`Css` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_CssValid_lintMsg1`
     FOREIGN KEY (`msgId` )
@@ -287,7 +287,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsLint` (
   CONSTRAINT `fk_JsLint_JavaScript1`
     FOREIGN KEY (`jsId` )
     REFERENCES `hilas`.`JavaScript` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsLint_JsLintMsg1`
     FOREIGN KEY (`msgId` )
