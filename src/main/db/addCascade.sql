@@ -42,7 +42,7 @@ ALTER TABLE SafeBrowseResult DROP FOREIGN KEY fk_SafeBrowseResult_Domain1;
 ALTER TABLE SafeBrowseResult ADD  CONSTRAINT  fk_SafeBrowseResult_Domain1
     FOREIGN KEY (`domainId` )
     REFERENCES `hilas`.`Domain` (`id` )
-    ON DELETE NO ACTION
+    ON DELETE CASCADE
     ON UPDATE NO ACTION;
 
 ALTER TABLE site DROP FOREIGN KEY fk_Site_Domain1;
