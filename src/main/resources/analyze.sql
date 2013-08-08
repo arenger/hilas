@@ -1,7 +1,9 @@
 insert into analysis
-select a.id, a.domain, h.source, a.sbsSum, null, null, null, null, b.numSites,
-b.htmlBytes, c.htmlLintCount, c.htmlLintSum, d.jsBytes, e.jsLintCount,
-e.jsLintSum, f.cssBytes, g.cssLintCount, g.cssLintSum
+select a.id, a.domain, h.source, a.sbsSum,
+null, null, null, null,
+null, null, null, null,
+b.numSites, b.htmlBytes, c.htmlLintCount, c.htmlLintSum, d.jsBytes,
+e.jsLintCount, e.jsLintSum, f.cssBytes, g.cssLintCount, g.cssLintSum
 from ( -- sbs summary:
    select ad.id, ad.domain, sum(ifnull(sbr.result,0)) as sbsSum
    from domain ad join safebrowseresult sbr on ad.id = sbr.domainId

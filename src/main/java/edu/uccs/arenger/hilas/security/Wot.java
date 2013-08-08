@@ -107,14 +107,15 @@ public class Wot extends Worker {
             paused = false;
          }
          LOGGER.debug("submitting {} domains for vetting", doms.size());
-         HttpResponse resp = Request
-            .Get(String.format(API, makeHostString(doms), API_KEY))
+         String reqString = String.format(API, makeHostString(doms), API_KEY);
+         HttpResponse resp = Request.Get(reqString)
             .socketTimeout(10000).execute().returnResponse();
          int code = resp.getStatusLine().getStatusCode();
          if (code == 200) {
             SafeBrowseResult.batchInsert(parseResponse(doms, resp));
          } else {
-            LOGGER.error("Response code: {}", code);
+            LOGGER.error("Response code: {} from GET: {}", code, reqString);
+            paused = true;
          }
       } catch (IOException e) {
          LOGGER.error("problem likely related to http request", e);

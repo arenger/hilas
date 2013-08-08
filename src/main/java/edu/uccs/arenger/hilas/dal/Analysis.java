@@ -35,6 +35,16 @@ public final class Analysis {
    private static final String UPD_WOT =
       "update analysis set wot0 = ?, wot1 = ?, wot2 = ?, wot4 = ? " +
       "where domainId = ?";
+   private static final String UPD_SBS =
+      "update analysis set google = (" +
+      "select result from safebrowseresult where sbsid = 1 and domainid = ?" +
+      "), mcafee = (" +
+      "select result from safebrowseresult where sbsid = 2 and domainid = ?" +
+      "), norton = (" +
+      "select result from safebrowseresult where sbsid = 4 and domainid = ?" +
+      "), wot = (" +
+      "select result from safebrowseresult where sbsid = 8 and domainid = ?" +
+      ") where domainid = ?";
    private static final String EXPORT = 
       "select * from analysis where domain != 'error'";
    private String insertSql;
@@ -83,6 +93,17 @@ public final class Analysis {
          setTinyIntCol(ps, 2, info.wot1);
          setTinyIntCol(ps, 3, info.wot2);
          setTinyIntCol(ps, 4, info.wot4);
+         ps.setString(5, domainId);
+         ps.executeUpdate();
+      }
+   }
+
+   private void fillSbsColumns(String domainId) throws SQLException {
+      try (PreparedStatement ps = conn.prepareStatement(UPD_SBS)) {
+         ps.setString(1, domainId);
+         ps.setString(2, domainId);
+         ps.setString(3, domainId);
+         ps.setString(4, domainId);
          ps.setString(5, domainId);
          ps.executeUpdate();
       }
@@ -148,6 +169,7 @@ public final class Analysis {
          while ((domainId = Domain.getUnanalyzedId()) != null) {
             newRow(domainId);
             extraWot(domainId);
+            fillSbsColumns(domainId);
          }
          export();
       } catch (SQLException e) {
