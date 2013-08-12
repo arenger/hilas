@@ -70,6 +70,12 @@ public class DomainFinder extends Worker {
             }
             if (!Domain.seenMain(newUrl)) {
                Site site = new Site(newUrl, "DomainFinder");
+               site.setVisitTime(System.currentTimeMillis()); // note:
+               // using "visitTime" as "foundTime" when in crawl mode,
+               // rather than adding another column.  yes, we'll also
+               // visit some of the sites that were found, so visitTime
+               // should be the time when/if we visit a site, but in crawl
+               // mode i don't care when it was visited - only when "found"
                site.insert();
             } else {
                urlk.considerKeeping(newUrl);
