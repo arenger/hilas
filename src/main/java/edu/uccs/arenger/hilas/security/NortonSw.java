@@ -33,7 +33,7 @@ public class NortonSw extends Worker {
       "http://ratings-wrs.symantec.com/rating?url=%s";
 
    private static final Pattern PAT_SITE
-      = Pattern.compile("<site\\s(.+?)\\/>", Pattern.MULTILINE);
+      = Pattern.compile("<site\\s(.+?)>", Pattern.MULTILINE);
    private static final Pattern PAT_RATE = Pattern.compile("r=\"(\\w)\"");
 
    public long getDelay() {
@@ -68,7 +68,8 @@ public class NortonSw extends Worker {
                   LOGGER.error("unexpected vet code: {}", r);
                }
             } else {
-               LOGGER.error("PAT_RATE no match: {}", content);
+               LOGGER.info("PAT_RATE no match. marking unknown: {}", content);
+               ret = null;
             }
          } else {
             LOGGER.error("PAT_SITE no match: {}", content);
