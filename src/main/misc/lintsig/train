@@ -1,0 +1,69 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+use Data::Dump "pp";
+use constant BINSZ => 10;
+
+# Effective permutations of BINSZ, good-range, and bad-range:
+#  5,  80-95, 15-25  (18/34.2/25.3)
+# 10, 90-100,  5-25  (38/35.2/26.2)
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+#$dbc->{HandleError} = sub { return 1; }; #ignore, now that connected
+
+sub hist {
+   our($h, $c);
+   my($type,$sigs) = @_;
+   for my $sig (@$sigs) {
+      my @ids  = split(/,/,$sig);
+      my $range = int(@ids/BINSZ);
+      for my $id (@ids) {
+         $h->{$range}{$id}{$type}++;
+         $c->{$range}{$type}++;
+      }
+   }
+}
+
+sub nvl {
+   my ($value,$default) = @_;
+   return defined($value) ? $value : $default;
+}
+
+our $h;
+our $c;
+my  $d;
+hist('g', $dbc->selectcol_arrayref(
+   "select lintsig from analysis where wot0 between 90 and 100"));
+hist('b', $dbc->selectcol_arrayref(
+   "select lintsig from analysis where wot0 between 5 and 25"));
+for my $range (keys(%$h)) {
+   if (!defined($c->{$range}{'g'})) { $c->{$range}{'g'} = 0; }
+   if (!defined($c->{$range}{'b'})) { $c->{$range}{'b'} = 0; }
+   printf "%2d: gttl: %5d bttl: %5d\n",
+      ($range, $c->{$range}{'g'}, $c->{$range}{'b'});
+   open(R, ">stat$range.csv");
+   for my $id (keys(%{$h->{$range}})) {
+      my $gCount = nvl($h->{$range}{$id}{'g'}, 0);
+      my $bCount = nvl($h->{$range}{$id}{'b'}, 0);
+      my $gPerc = $gCount ? ($gCount / $c->{$range}{'g'}) : 0;
+      my $bPerc = $bCount ? ($bCount / $c->{$range}{'b'}) : 0;
+   #  if (abs($gPerc - $bPerc) > 0.002) {
+         printf R "%d,%d,%d,%f,%f,%f\n", ($id, $gCount, $bCount,
+            $gPerc * 100, $bPerc * 100, $gPerc - $bPerc);
+   #  }
+      $d->{$range}{'g'}{$id} = $gPerc;
+      $d->{$range}{'b'}{$id} = $bPerc;
+   }
+   close(R);
+   my $ttl = $c->{$range}{'g'} + $c->{$range}{'b'};
+   $d->{$range}{'g'}{'prior'} = $c->{$range}{'g'} / $ttl;
+   $d->{$range}{'b'}{'prior'} = $c->{$range}{'b'} / $ttl;
+}
+open( D, ">dump.pl");
+print D pp($d);
+close(D);
+
+$dbc->disconnect();

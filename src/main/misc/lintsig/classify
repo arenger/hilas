@@ -1,0 +1,62 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+use constant BINSZ => 10;
+
+sub nvl {
+   my ($value,$default) = @_;
+   return defined($value) ? $value : $default;
+}
+
+#main
+if (@ARGV != 1) {
+   print "usage: $0 dumpFile\n";
+   exit 1;
+}
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+#$dbc->{HandleError} = sub { return 1; }; #ignore, now that connected
+
+#reload dump file (output from train)-
+my $dump;
+{ local $/ = undef; $dump = <>; }
+my $stats = eval $dump;
+
+$dbc->{FetchHashKeyName} = 'NAME_lc';
+my $h = $dbc->selectall_hashref(
+   "select domainid, lintsig from analysis", "domainid"
+);
+
+my $ups = $dbc->prepare("update analysis set s5verdict = ? where domainid = ?");
+
+printf("domainid,range,gPrior,gLike,gPost,bPrior,bLike,bPost,verdict\n");
+for my $id (keys(%$h)) {
+   if (defined($h->{$id}->{'lintsig'})) {
+      my @lids = split(/,/,$h->{$id}->{'lintsig'});
+      my $range = int(@lids/BINSZ);
+      my $gPrior = $stats->{$range}{'g'}{'prior'};
+      my $bPrior = $stats->{$range}{'b'}{'prior'};
+      if (!defined($gPrior) || !defined($bPrior)) { next; }
+      my $gLike = 0;
+      my $bLike = 0;
+      for my $lid (@lids) {
+         $gLike += nvl($stats->{$range}{'g'}{$lid}, 0);
+         $bLike += nvl($stats->{$range}{'b'}{$lid}, 0);
+      }
+      my $gPost = $gPrior * $gLike;
+      my $bPost = $bPrior * $bLike;
+      #my $verdict = $bPost > $gPost ? 'b' : 'g';
+      my $verdict = ($bPost - $gPost) > 0.0000001 ? 'b' : 'g';
+      printf("%s,%d,%f,%f,%f,%f,%f,%f,%s\n",
+         $id, $range,
+         $gPrior, $gLike, $gPost,
+         $bPrior, $bLike, $bPost,
+         $verdict);
+      $ups->execute($verdict, $id);
+   }
+}
+
+$dbc->disconnect();

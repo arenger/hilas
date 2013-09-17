@@ -1,0 +1,36 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+
+#main
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+#$dbc->{HandleError} = sub { return 1; }; #ignore, now that connected
+$dbc->do("alter table analysis add column lintsig varchar(1024) null");
+
+my $ids = $dbc->selectcol_arrayref("select domainid from analysis where domain != 'error'");
+
+
+my $ups = $dbc->prepare("update analysis set lintsig = ? where domainid = ?");
+for my $id (@$ids) {
+   my $hLint = $dbc->selectcol_arrayref(
+      "select l.num from site s join htmlvalid hv on s.id = hv.siteid ".
+      "join lintmsg l on hv.msgid = l.id where s.domainid = '$id' ".
+      "group by l.id");
+   my $jLint = $dbc->selectcol_arrayref(
+      "select l.num from site s join sitejs sj on s.id = sj.siteid ".
+      "join javascript js on sj.jsid = js.id join jshint jh on ".
+      "js.id = jh.jsid join lintmsg l on jh.msgid = l.id ".
+      "where s.domainid = '$id' group by l.id");
+   my $cLint = $dbc->selectcol_arrayref(
+      "select l.num from site s join sitecss sc on s.id = sc.siteid ".
+      "join css on sc.cssid = css.id join cssvalid cv on css.id = cv.cssid ".
+      "join lintmsg l on cv.msgid = l.id ".
+      "where s.domainid = '$id' group by l.id");
+   my $sig = join(',', sort {$a <=> $b} (@$hLint, @$jLint, @$cLint));
+   $ups->execute($sig, $id);
+}
+
+$dbc->disconnect();

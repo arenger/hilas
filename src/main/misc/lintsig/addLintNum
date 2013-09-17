@@ -1,0 +1,23 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+
+# maybe i should just an auto_increment id on the lintmsg table.  oh well...
+
+#main
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+#$dbc->{HandleError} = sub { return 1; }; #ignore, now that connected
+
+$dbc->do("alter table lintmsg add column num smallint null");
+
+my $ids = $dbc->selectcol_arrayref("select id from lintmsg order by message");
+my $ups = $dbc->prepare("update lintmsg set num = ? where id = ?");
+my $num = 1;
+for my $id (@$ids) {
+   $ups->execute($num++, $id);
+}
+
+$dbc->disconnect();
