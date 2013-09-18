@@ -6,6 +6,8 @@ import java.io.FileReader;
 import java.io.IOException;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.util.List;
+import java.util.ArrayList;
 import java.util.Properties;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -34,7 +36,7 @@ public final class Hilas {
    private static final int TPOOL_SIZE = 5;
    private static final String USAGE =
       "usage: hilas run\n" +
-      "OR     hilas load FILE\n" +
+      "OR     hilas load fileList\n" +
       "OR     hilas crawl seedUrl\n" +
       "OR     hilas analyze";
 
@@ -57,8 +59,8 @@ public final class Hilas {
    private static Properties props;
 
    private Mode mode;
-   private File loadFile;
    private String seedUrl;
+   private List<File> loadFiles;
    private ScheduledExecutorService multiThredExec;
    private ScheduledExecutorService singleThreadExec;
    private JsHinter jsHinter;
@@ -78,11 +80,19 @@ public final class Hilas {
       }
       switch (mode) {
       case LOAD:
-         if (args.length != 2) {
+         if (args.length < 2) {
             System.out.println(USAGE);
             System.exit(1);
          }
-         loadFile = new File(args[1]);
+         loadFiles = new ArrayList<File>();
+         for (int i = 1; i < args.length; i++) {
+            File f = new File(args[i]);
+            if (!f.exists() || !f.canRead()) {
+               System.out.println("file DNE or unreadable: " + f);
+               System.exit(1);
+            }
+            loadFiles.add(f);
+         }
          break;
       case CRAWL:
          if (args.length != 2) {
@@ -161,29 +171,31 @@ public final class Hilas {
    }
 
    private void load() {
-      try (BufferedReader in
-         = new BufferedReader(new FileReader(loadFile))) {
-         Pool.init(props);
-         String source = FilenameUtils.getBaseName(loadFile.getName());
-         String line;
-         while ((line = in.readLine()) != null) {
-            URL url = null;
-            try {
-               url = new URL(line);
-               if (Util.protocolOk(url)) {
-                  Site site = new Site(url, source);
-                  site.insert();
-               } else {
-                  LOGGER.error("unsupported protocol: " + url);
+      for (File file : loadFiles) {
+         try (BufferedReader in
+            = new BufferedReader(new FileReader(file))) {
+            Pool.init(props);
+            String source = FilenameUtils.getBaseName(file.getName());
+            String line;
+            while ((line = in.readLine()) != null) {
+               URL url = null;
+               try {
+                  url = new URL(line);
+                  if (Util.protocolOk(url)) {
+                     Site site = new Site(url, source);
+                     site.insert();
+                  } else {
+                     LOGGER.error("unsupported protocol: " + url);
+                  }
+               } catch (PkViolation e) {
+                  LOGGER.warn("already exists: " + url);
+               } catch (MalformedURLException e) {
+                  LOGGER.error("malformed url: " + url);
                }
-            } catch (PkViolation e) {
-               LOGGER.warn("already exists: " + url);
-            } catch (MalformedURLException e) {
-               LOGGER.error("malformed url: " + url);
             }
+         } catch (DalException|IOException e) {
+            LOGGER.error("problem", e);
          }
-      } catch (DalException|IOException e) {
-         LOGGER.error("problem", e);
       }
    }
 
