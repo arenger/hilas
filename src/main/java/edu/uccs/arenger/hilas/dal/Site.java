@@ -118,7 +118,7 @@ public class Site {
          }
          ps.setString(8, lintState.toString());
          ps.executeUpdate();
-         //LOGGER.info("inserted new site: {} - {}", id, url);
+         LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
          throw DalException.of(e);
       }
@@ -241,6 +241,10 @@ public class Site {
 
    public String getDomainId() {
       return domainId;
+   }
+
+   public String getSource() {
+      return source;
    }
 
    public URL getUrl() {

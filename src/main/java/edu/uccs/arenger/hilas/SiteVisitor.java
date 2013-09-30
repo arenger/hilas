@@ -212,6 +212,48 @@ public class SiteVisitor extends Worker {
       }
    }
 
+   private String urlFromMetaContentAttr(String content) {
+      if (content == null) { return null; }
+      String url = null;
+      String parts[] = content.split("[\\s;]+");
+      int i = 0;
+      while ((i < parts.length) && (url == null)) {
+         if (parts[i].toLowerCase().startsWith("url=")) {
+            url = parts[i].substring(4).replaceAll("['\"]","");
+         }
+         i++;
+      }
+      return url;
+   }
+
+   private void addForward(Site site, TagNode root) throws DalException {
+      TagNode[] arr = root.getElementsByName("meta", true);
+      for (TagNode tn : arr) {
+         String equiv   = tn.getAttributeByName("http-equiv");
+         String content = tn.getAttributeByName("content");
+         if ((equiv != null) && (content != null) &&
+            equiv.toLowerCase().equals("refresh")) {
+            String urlStr = urlFromMetaContentAttr(content);
+            if (urlStr != null) {
+               try {
+                  URL url = new URL(site.getUrl(), urlStr);
+                  if (!samePage(site.getUrl(), url)) {
+                     new Site(url, site.getSource()).insert();
+                     LOGGER.info("added forward from {} (source {})",
+                        site.getUrl(), site.getSource());
+                     return; //only one http-equiv should be processed
+                  }
+               } catch (MalformedURLException e) {
+                  LOGGER.error("malformred http-equiv fwd using {} and {}",
+                     site, urlStr);
+               } catch (PkViolation e) {
+                  LOGGER.debug("attemped fwd insert already exists.");
+               }
+            }
+         }
+      }
+   }
+
    private void visit(Site site, int depth) {
       if (depth > MAX_DEPTH) {
          LOGGER.warn(
@@ -253,12 +295,17 @@ public class SiteVisitor extends Worker {
          JsNet       jsNet  = new JsNet();
          CssNet      cssNet = new CssNet();
          if (tc.content != null) {
-            site.setSize(tc.content.length());
+            int size = tc.content.length();
+            if ((size > 0) && (size < 512)) {
+               LOGGER.debug("SMALL-SITE:\n{}", tc.content);
+            }
+            site.setSize(size);
             TagNode root = hc.clean(tc.content);
             fishForResource(site, root, jsNet);
             fishForResource(site, root, cssNet);
             visitChildren(site, root, depth);
             addPeers(site, root);
+            addForward(site, root);
          } else {
             site.setSize(0);
          }

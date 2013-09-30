@@ -8,10 +8,10 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`analysis` (
 
   `sbsSum` TINYINT NULL ,
 
-  `google` TINYINT(1) NULL,
-  `mcafee` TINYINT(1) NULL,
-  `norton` TINYINT(1) NULL,
-  `wot`    TINYINT(1) NULL,
+  `gsb` TINYINT(1) NULL,
+  `msa` TINYINT(1) NULL,
+  `nsw` TINYINT(1) NULL,
+  `wot` TINYINT(1) NULL,
 
   `wot0` TINYINT NULL ,
   `wot1` TINYINT NULL ,

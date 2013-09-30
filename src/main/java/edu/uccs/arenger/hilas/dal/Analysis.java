@@ -36,11 +36,11 @@ public final class Analysis {
       "update analysis set wot0 = ?, wot1 = ?, wot2 = ?, wot4 = ? " +
       "where domainId = ?";
    private static final String UPD_SBS =
-      "update analysis set google = (" +
+      "update analysis set gsb = (" +
       "select result from safebrowseresult where sbsid = 1 and domainid = ?" +
-      "), mcafee = (" +
+      "), msa = (" +
       "select result from safebrowseresult where sbsid = 2 and domainid = ?" +
-      "), norton = (" +
+      "), nsw = (" +
       "select result from safebrowseresult where sbsid = 4 and domainid = ?" +
       "), wot = (" +
       "select result from safebrowseresult where sbsid = 8 and domainid = ?" +
