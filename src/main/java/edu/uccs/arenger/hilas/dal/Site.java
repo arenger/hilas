@@ -29,6 +29,7 @@ public class Site {
    private Long       visitTime;
    private Integer    size;
    private LintState  lintState;
+   private String     fwdTo;
 
    public enum VisitState {
       NEW, VISITING, VISITED, VALIDATING, VALID, ERROR
@@ -42,10 +43,10 @@ public class Site {
       "select * from site where lintState = 'UNPROCESSED' " +
       "and visitstate = 'VISITED' limit 1";
    private static final String INS =
-      "insert into site values (?,?,?,?,?,?,?,?)";
+      "insert into site values (?,?,?,?,?,?,?,?,?)";
    private static final String UPD = 
       "update site set visitState = ?, visitTime = ?, " +
-      "size = ?, lintState = ? where id = ?";
+      "size = ?, lintState = ?, fwdTo = ? where id = ?";
    private static final String DEL_SITE_FRAME = 
       "delete from siteframe where topsite = ?";
    private static final String INS_SITE_FRAME = 
@@ -84,6 +85,7 @@ public class Site {
       if (ts != null) { visitTime = ts.getTime(); }
       size = rs.getInt("size"); if (rs.wasNull()) { size = null; }
       lintState = LintState.valueOf(rs.getString("lintState"));
+      fwdTo = rs.getString("fwdTo");
    }
 
    public void insert() throws DalException {
@@ -117,6 +119,11 @@ public class Site {
             ps.setNull(7, Types.INTEGER);
          }
          ps.setString(8, lintState.toString());
+         if (fwdTo != null) {
+            ps.setString(9, fwdTo);
+         } else {
+            ps.setNull(9, Types.VARCHAR);
+         }
          ps.executeUpdate();
          LOGGER.info("inserted new site: {} - {}", id, url);
       } catch (SQLException e) {
@@ -139,7 +146,12 @@ public class Site {
             ps.setNull(3, Types.INTEGER);
          }
          ps.setString(4, lintState.toString());
-         ps.setString(5, id);
+         if (fwdTo != null) {
+            ps.setString(5, fwdTo);
+         } else {
+            ps.setNull(5, Types.VARCHAR);
+         }
+         ps.setString(6, id);
          ps.executeUpdate();
       } catch (SQLException e) { throw new DalException(e); }
    }
@@ -261,6 +273,10 @@ public class Site {
 
    public void setSize(Integer size) {
       this.size = size;
+   }
+
+   public void setFwdTo(String id) {
+      this.fwdTo = id;
    }
 
    public void setLintState(LintState lintState) {

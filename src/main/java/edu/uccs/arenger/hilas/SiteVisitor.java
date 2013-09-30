@@ -238,13 +238,15 @@ public class SiteVisitor extends Worker {
                try {
                   URL url = new URL(site.getUrl(), urlStr);
                   if (!samePage(site.getUrl(), url)) {
-                     new Site(url, site.getSource()).insert();
-                     LOGGER.info("added forward from {} (source {})",
-                        site.getUrl(), site.getSource());
+                     Site target = new Site(url, site.getSource());
+                     target.insert();
+                     site.setFwdTo(target.getId());
+                     LOGGER.info("added forward from {} to {}",
+                        site.getUrl(), url);
                      return; //only one http-equiv should be processed
                   }
                } catch (MalformedURLException e) {
-                  LOGGER.error("malformred http-equiv fwd using {} and {}",
+                  LOGGER.error("malformed http-equiv fwd using {} and {}",
                      site, urlStr);
                } catch (PkViolation e) {
                   LOGGER.debug("attemped fwd insert already exists.");

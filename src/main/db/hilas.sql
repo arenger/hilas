@@ -89,6 +89,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`Site` (
   `visitTime` TIMESTAMP NULL COMMENT 'if/when this site was visited' ,
   `size` INT NULL COMMENT 'size in bytes of the initial html loaded.  no js-generated html will be included' ,
   `lintState` VARCHAR(16) NOT NULL DEFAULT 'UNPROCESSED' COMMENT 'state of the html validation for this page' ,
+  `fwdTo` VARCHAR(32) NULL COMMENT 'if this site forwards to another site, this field contains the id of the target' ,
   PRIMARY KEY (`id`) ,
   INDEX `fk_Site_Domain1_idx` (`domainId` ASC) ,
   CONSTRAINT `fk_Site_Domain1`
