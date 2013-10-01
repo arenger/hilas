@@ -99,7 +99,7 @@ public class McAfeeSa extends Worker {
          }
          LOGGER.debug("submitting 1 domain for vetting");
          String html = Util.getTypedContent(new URL(
-            String.format(MSA_URL, doms.get(0)))).content;
+            String.format(MSA_URL, doms.get(0).getDomain()))).content;
          SafeBrowseResult sbr = new SafeBrowseResult(
             doms.get(0).getId(), Sbs.MCAFEE);
          sbr.setResult(getVerdict(html));
