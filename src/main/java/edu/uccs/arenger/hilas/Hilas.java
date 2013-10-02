@@ -16,7 +16,7 @@ import org.apache.commons.io.FilenameUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import edu.uccs.arenger.hilas.dal.Analysis;
+import edu.uccs.arenger.hilas.dal.Aggregator;
 import edu.uccs.arenger.hilas.dal.DalException;
 import edu.uccs.arenger.hilas.dal.PkViolation;
 import edu.uccs.arenger.hilas.dal.Pool;
@@ -38,7 +38,7 @@ public final class Hilas {
       "usage: hilas run\n" +
       "OR     hilas load fileList\n" +
       "OR     hilas crawl seedUrl\n" +
-      "OR     hilas analyze";
+      "OR     hilas aggregate";
 
    /* Notes about CRAWL mode:
     * The site.visitState column is "overloaded".  It is used by the
@@ -53,7 +53,7 @@ public final class Hilas {
     */
 
    enum Mode {
-      RUN, LOAD, CRAWL, ANALYZE
+      RUN, LOAD, CRAWL, AGGREGATE
    };
 
    private static Properties props;
@@ -75,7 +75,7 @@ public final class Hilas {
       } catch (IllegalArgumentException e) {
          System.out.println("invalid mode: " + args[0]);
          System.out.println(
-            "please specify 'run', 'load', 'crawl', or 'analyze'");
+            "please specify 'run', 'load', 'crawl', or 'aggregate'");
          System.exit(1);
       }
       switch (mode) {
@@ -237,10 +237,10 @@ public final class Hilas {
       }
    }
 
-   private void analyze() {
+   private void aggregate() {
       try {
          Pool.init(props);
-         new Analysis().go();
+         new Aggregator().go();
       } catch (DalException e) {
          LOGGER.error("problem", e);
       }
@@ -263,8 +263,8 @@ public final class Hilas {
          case CRAWL:
             crawl();
             break;
-         case ANALYZE:
-            analyze();
+         case AGGREGATE:
+            aggregate();
             break;
       }
    }

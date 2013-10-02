@@ -151,11 +151,11 @@ ENGINE = InnoDB;
 
 
 -- -----------------------------------------------------
--- Table `hilas`.`lintMsg`
+-- Table `hilas`.`LintMsg`
 -- -----------------------------------------------------
-DROP TABLE IF EXISTS `hilas`.`lintMsg` ;
+DROP TABLE IF EXISTS `hilas`.`LintMsg` ;
 
-CREATE  TABLE IF NOT EXISTS `hilas`.`lintMsg` (
+CREATE  TABLE IF NOT EXISTS `hilas`.`LintMsg` (
   `id` VARCHAR(36) NOT NULL ,
   `message` VARCHAR(512) NOT NULL COMMENT 'the TEMPLATE of the error or warning' ,
   `severity` TINYINT(1) NOT NULL DEFAULT 1 COMMENT 'possibly helpful for minimizing set c' ,
@@ -177,7 +177,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsHint` (
   INDEX `fk_JsHint_JsHintMsg1_idx` (`msgId` ASC) ,
   CONSTRAINT `fk_JsHint_JsHintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`lintMsg` (`id` )
+    REFERENCES `hilas`.`LintMsg` (`id` )
     ON DELETE CASCADE
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsHint_JavaScript1`
@@ -206,7 +206,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`HtmlValid` (
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_HtmlValid_lintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`lintMsg` (`id` )
+    REFERENCES `hilas`.`LintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -244,7 +244,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`CssValid` (
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_CssValid_lintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`lintMsg` (`id` )
+    REFERENCES `hilas`.`LintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;
@@ -292,7 +292,7 @@ CREATE  TABLE IF NOT EXISTS `hilas`.`JsLint` (
     ON UPDATE NO ACTION,
   CONSTRAINT `fk_JsLint_JsLintMsg1`
     FOREIGN KEY (`msgId` )
-    REFERENCES `hilas`.`lintMsg` (`id` )
+    REFERENCES `hilas`.`LintMsg` (`id` )
     ON DELETE NO ACTION
     ON UPDATE NO ACTION)
 ENGINE = InnoDB;

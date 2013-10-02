@@ -20,9 +20,9 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import edu.uccs.arenger.hilas.Util;
 
 //Just to make things easier...
-public final class Analysis {
+public final class Aggregator {
    private static final Logger LOGGER
-      = LoggerFactory.getLogger(Analysis.class);
+      = LoggerFactory.getLogger(Aggregator.class);
    private static final int NQS = 8;
 
    private Connection conn = null;
@@ -49,10 +49,10 @@ public final class Analysis {
       "select * from analysis where domain != 'error'";
    private String insertSql;
 
-   public Analysis() {
+   public Aggregator() {
       try {
          insertSql = IOUtils.toString(
-            ClassLoader.getSystemResourceAsStream("analyze.sql"));
+            ClassLoader.getSystemResourceAsStream("aggregate.sql"));
       } catch (IOException e) {
          LOGGER.error("error loading resource: {}", e.getMessage());
       }
