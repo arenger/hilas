@@ -1,0 +1,37 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use File::Basename;
+use DBI;
+
+my $sql = <<SQL
+   select count(sub.id), sub.url from (
+      select js.id, js.url from javascript js
+         join sitejs sj on js.id = sj.jsid
+         join site s on sj.siteid = s.id
+         join domain d on s.domainid = d.id
+      group by concat(js.id,d.main)) sub
+   group by sub.id
+SQL
+;
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+
+my %h;
+my $r = $dbc->selectall_arrayref($sql);
+for (my $i = 0; $i < scalar(@$r); $i++) {
+   $_ = $r->[$i][1];
+   s/^https?:\/\///;
+   s/\?.*//;
+   s/\.min//;
+   s/(\D)\d\./\./g; s/(\D)\d\./\./;
+   $h{basename($_)} += $r->[$i][0];
+}
+my @libs = sort {$h{$b} <=> $h{$a}} keys(%h);
+for my $i (1..10) {
+   printf("%2d %4d %s\n", ($i, $h{$libs[$i - 1]}, $libs[$i - 1]));
+}
+
+$dbc->disconnect();
