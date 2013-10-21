@@ -20,6 +20,8 @@ our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
    or die "Could not connect to database: $DBI::errstr";
 #$dbc->{HandleError} = sub { return 1; }; #ignore, now that connected
 
+$dbc->do("update analysis set lsclass = null");
+
 #reload dump file (output from train)-
 my $dump;
 { local $/ = undef; $dump = <>; }
@@ -27,12 +29,12 @@ my $stats = eval $dump;
 
 $dbc->{FetchHashKeyName} = 'NAME_lc';
 my $h = $dbc->selectall_hashref(
-   "select domainid, lintsig from analysis", "domainid"
+   "select domainid, lintsig from analysis where htmlbytes > 511", "domainid"
 );
 
-my $ups = $dbc->prepare("update analysis set s5verdict = ? where domainid = ?");
+my $ups = $dbc->prepare("update analysis set lsclass = ? where domainid = ?");
 
-printf("domainid,range,gPrior,gLike,gPost,bPrior,bLike,bPost,verdict\n");
+#printf("domainid,range,gPrior,gLike,gPost,bPrior,bLike,bPost,verdict\n");
 for my $id (keys(%$h)) {
    if (defined($h->{$id}->{'lintsig'})) {
       my @lids = split(/,/,$h->{$id}->{'lintsig'});
@@ -50,11 +52,11 @@ for my $id (keys(%$h)) {
       my $bPost = $bPrior * $bLike;
       #my $verdict = $bPost > $gPost ? 'b' : 'g';
       my $verdict = ($bPost - $gPost) > 0.0000001 ? 'b' : 'g';
-      printf("%s,%d,%f,%f,%f,%f,%f,%f,%s\n",
-         $id, $range,
-         $gPrior, $gLike, $gPost,
-         $bPrior, $bLike, $bPost,
-         $verdict);
+#     printf("%s,%d,%f,%f,%f,%f,%f,%f,%s\n",
+#        $id, $range,
+#        $gPrior, $gLike, $gPost,
+#        $bPrior, $bLike, $bPost,
+#        $verdict);
       $ups->execute($verdict, $id);
    }
 }

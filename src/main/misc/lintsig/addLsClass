@@ -1,0 +1,10 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+$dbc->do("alter table analysis add column lsclass char(1) null");
+$dbc->disconnect();
