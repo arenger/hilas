@@ -10,7 +10,7 @@ sub lineStats {
    my $s = shift;
    my $len = length($s);
    if (!$len) { return (0,0); }
-   my $lc = (() = $s =~ /\R+/g);
+   my $lc = (() = $s =~ /\R/g);
    my $avgLineLen = 0;
    if ($lc) {
       $avgLineLen = int(($len - $lc) / $lc);
