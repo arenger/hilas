@@ -1,0 +1,11 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+$dbc->do("alter table javascript add column numlines int null");
+$dbc->do("alter table javascript add column avgLineLen int null");
+$dbc->disconnect();

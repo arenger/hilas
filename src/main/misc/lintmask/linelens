@@ -1,0 +1,42 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use LWP::Simple qw($ua get);
+use strict;
+use warnings;
+use DBI;
+$| = 1;
+
+sub lineStats {
+   my $s = shift;
+   my $len = length($s);
+   if (!$len) { return (0,0); }
+   my $lc = (() = $s =~ /\R/g);
+   my $avgLineLen = 0;
+   if ($lc) {
+      $avgLineLen = int(($len - $lc) / $lc);
+   } else {
+      $lc = 1;
+      $avgLineLen = $len;
+   }
+   return ($lc, $avgLineLen);
+}
+
+$ua->timeout(10);
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+
+my $sel = $dbc->prepare(
+   "select id, url from javascript where hintstate = 'PROCESSED' and ".
+   "numlines is null");
+my $ups = $dbc->prepare(
+   "update javascript set numlines = ?, avgLineLen = ? where id = ?");
+
+$sel->execute();
+while (my @row = $sel->fetchrow_array) {
+   print $row[0]."\n";
+   my @ls = lineStats(get($row[1]));
+   $ups->execute($ls[0], $ls[1], $row[0]);
+}
+
+$dbc->disconnect();
