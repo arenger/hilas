@@ -10,7 +10,7 @@ sub lineStats {
    my $s = shift;
    my $len = length($s);
    if (!$len) { return (0,0); }
-   my $lc = (() = $s =~ /\R/g);
+   my $lc = (() = $s =~ /\R+/g);
    my $avgLineLen = 0;
    if ($lc) {
       $avgLineLen = int(($len - $lc) / $lc);
@@ -21,7 +21,7 @@ sub lineStats {
    return ($lc, $avgLineLen);
 }
 
-$ua->timeout(10);
+$ua->timeout(5);
 
 our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
    or die "Could not connect to database: $DBI::errstr";
