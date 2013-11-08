@@ -1,0 +1,40 @@
+#!/usr/bin/perl
+use lib '/Users/arenger/perl5/lib/perl5';
+use strict;
+use warnings;
+use DBI;
+$| = 1;
+
+our $dbc = DBI->connect( 'DBI:mysql:hilas', 'hilas', 'hilas')
+   or die "Could not connect to database: $DBI::errstr";
+
+my $sel = $dbc->prepare(
+   "select id from lintmsg where message like 'js: %'");
+
+my($A, $B);
+($A) = $dbc->selectrow_array("select count(*) from javascript where min = 0");
+($B) = $dbc->selectrow_array("select count(*) from javascript where min = 1");
+print "nomin: $A\n";
+print "  min: $B\n";
+
+my $sta = $dbc->prepare(
+   "select count(*) from lintmsg m join jshint h on m.id = h.msgid ".
+   "join javascript j on h.jsid = j.id where m.id = ? and j.min = ?");
+
+my $ups = $dbc->prepare(
+   "update lintmsg set perc = ?, minperc = ? where id = ?");
+
+$sel->execute();
+while (my @row = $sel->fetchrow_array) {
+   my $id = $row[0];
+   my($a, $b);
+   print "$id - ";
+   $sta->execute($id, 0); ($a) = $sta->fetchrow_array;
+   $sta->execute($id, 1); ($b) = $sta->fetchrow_array;
+   printf("%.3f, %.3f\n",(($a/$A), ($b/$B)));
+   $ups->execute(($a/$A), ($b/$B), $id);
+}
+
+$sel->finish;
+$sta->finish;
+$dbc->disconnect();
