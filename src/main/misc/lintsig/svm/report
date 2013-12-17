@@ -1,0 +1,136 @@
+#!/usr/bin/perl
+# attempt to duplicate the method employed by the TI-83
+#
+# certainly there's a much more efficient way of doing this, but that
+# is not a concern at this point, nor is there time for the exercise...
+
+#  verified i/o on ti-83:
+#  set: 6 7 15 36 39 40 41 42 43 47 49
+#  q1:15
+#  q2:40
+#  q3:43
+#
+#  set: 7 15 36 39 40 41
+#  q1:15
+#  q2:37.5
+#  q3:40
+
+
+# return ( median , index ), where index is undef if median was not a datum
+sub median {
+   $len = scalar( @_ );
+   @s = sort {$a <=> $b} @_;
+   $haf = int($len/2);
+   return ( $len & 1 ) ?
+      ($s[$haf],$haf)  :
+      ((($s[$haf]+$s[$haf - 1])/2),undef);
+}
+
+sub msd {
+   my $r = shift;
+   my $t = 0;
+   for my $x (@$r) {
+      $t += $x;
+   }
+   my $mean = ($t / scalar(@$r));
+   $t = 0;
+   for my $x (@$r) {
+      $t += ($x - $mean) ** 2;
+   }
+   my $stdev = sqrt($t / scalar(@$r));
+   return ($mean, $stdev);
+}
+
+
+# load xref.dat -
+open(C, '<', 'xref.dat') or die;
+while (<C>) {
+   chop;
+   @_ = split(/,/);
+   push @w, $_[1];
+}
+close(C);
+
+
+$min = undef;
+$max = undef;
+$i   = 0;
+$bc  = 0;
+open(P, '<', 'pred.dat') or die;
+while ( <P> ) {
+   chop;
+   if ($_ < 0) {
+      $bc++;
+      if ($w[$i] >= 0) {
+         $_ = $w[$i];
+         push @a, $_;
+         if (!defined($min) || ($_ < $min)) {
+            $min = $_;
+         }
+         if (!defined($max) || ($_ > $max)) {
+            $max = $_;
+         }
+      }
+   }
+   $i++;
+}
+close(P);
+#|Sb|,|Sb U Wb|,min,max,q1,q2,q3,mean,stdev,1-sigma
+if (!@a) {
+   print "0,0,,,,,,,,\n";
+   exit 0;
+}
+
+@a = sort {$a <=> $b} @a;
+#print " a: @a\n";
+($q2,$i) = median(@a);
+
+if ( defined( $i ) ) {
+   for ( $j = 0; $j < @a; $j++ ) {
+      if ( $j < $i ) {
+         push @lh, $a[$j];
+      } elsif ( $j > $i ) {
+         push @uh, $a[$j];
+      }
+   }
+} else {
+   for $n ( @a ) {
+      if ( $n < $q2 ) {
+         push @lh, $n;
+      } elsif ( $n > $q2 ) {
+         push @uh, $n;
+      }
+   }
+}
+#print "lh: @lh\n";
+#print "uh: @uh\n";
+($q1) = median(@lh);
+($q3) = median(@uh);
+$iqr = $q3 - $q1;
+
+$lf = $q1 - (1.5 * $iqr);
+$uf = $q3 + (1.5 * $iqr);
+
+
+
+#|Sb|,|Sb U Wb|,min,max,q1,q2,q3,mean,stdev,1-sigma
+($mean, $stdev) = msd(\@a);
+$extra = sprintf("%.3f,%.3f,%.3f", $mean, $stdev, $mean + $stdev);
+print join(',', $bc, scalar(@a), $min, $max, $q1, $q2, $q3, $extra)."\n";
+
+#  printf("count:%d\n", scalar(@a));
+#  print "min:$min\n";
+#  print "max:$max\n";
+#  print "q1:$q1\n";
+#  print "q2 (median):$q2\n";
+#  print "q3:$q3\n";
+#  print "iqr:$iqr\n";
+#  print "lf:$lf\n";
+#  print "uf:$uf\n";
+
+#print "outliers:\n";
+#for $n ( @a ) {
+#   if ( ( $n < $lf ) || ( $n > $uf ) ) {
+#      print "$n\n";
+#   }
+#}

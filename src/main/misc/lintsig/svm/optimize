@@ -1,0 +1,19 @@
+#!/usr/bin/perl
+use strict;
+use warnings;
+$| = 1;
+
+while (<>) {
+   chop;
+   print "$_,";
+   my($pid,$z,$Glo,$Ghi,$Blo,$Bhi) = split /,/;
+   `rm -f train.dat model.dat pred.dat`;
+   `./makeTrainFile $z $Glo $Ghi $Blo $Bhi`;
+   if (-s 'train.dat') {
+      `svm_learn train.dat model.dat`;
+      `svm_classify test.dat model.dat pred.dat`;
+      print `./report`;
+   } else {
+      print "0,0,,,,,,,,\n";
+   }
+}

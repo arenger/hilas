@@ -1,0 +1,22 @@
+#!/bin/bash
+
+echo "makeTrainFile"
+./makeTrainFile $*
+if [[ $? ]]; then exit 1; fi
+echo cont
+exit 0
+
+echo; echo "makeTestFile"
+./makeTestFile
+
+echo; echo "svm_learn"
+svm_learn train.dat model.dat
+
+echo; echo "svm_classify"
+svm_classify test.dat model.dat pred.dat
+
+echo; echo "wc -l"
+wc -l *dat
+
+echo; echo "report:"
+./report
